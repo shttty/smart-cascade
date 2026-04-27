@@ -5,7 +5,7 @@ description: "Tiered model orchestration for medium-to-complex tasks. Must be ex
 
 # Smart Cascade — Tiered Model Orchestration
 
-Routes tasks across Executor → Planner → Advisor → Executor workers based on complexity.
+Routes tasks across Judge → Planner → Advisor → Executor workers based on complexity.
 Uses inline advisor agent calls for inter-layer escalation.
 
 ## Invocation
