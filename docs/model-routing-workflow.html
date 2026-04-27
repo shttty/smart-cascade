@@ -76,7 +76,7 @@
 </head>
 <body>
   <h1>分层模型路由工作流</h1>
-  <p class="subtitle">Haiku &middot; Sonnet &middot; Opus &middot; 智能升降级调度</p>
+  <p class="subtitle">执行者 &middot; 规划者 &middot; 顾问 &middot; 智能升降级调度</p>
 
   <div class="toolbar">
     <button onclick="panZoom && panZoom.zoomIn()">放大 ＋</button>
@@ -88,52 +88,52 @@
   <div class="diagram-wrap">
     <div class="mermaid">
 flowchart TD
-    USER([👤 用户输入]) --> HAIKU
+    USER([👤 用户输入]) --> EXECUTOR
 
-    subgraph LAYER1["🟢 Haiku 层 — 默认对话"]
-        HAIKU[Haiku\n轻量对话 / 简单任务]
-        HAIKU_DETECT{任务复杂度\n检测}
-        HAIKU --> HAIKU_DETECT
+    subgraph LAYER1["🟢 执行者层 — 默认对话"]
+        EXECUTOR[执行者\n轻量对话 / 简单任务]
+        DETECT{任务复杂度\n检测}
+        EXECUTOR --> DETECT
     end
 
-    HAIKU_DETECT -- "简单任务" --> HAIKU_DONE([✅ 直接回复用户])
-    HAIKU_DETECT -- "中型任务 / Plan" --> SONNET_START
+    DETECT -- "简单任务" --> DONE([✅ 直接回复用户])
+    DETECT -- "中等/规划任务" --> PLANNER_START
 
-    subgraph LAYER2["🔵 Sonnet 层 — 规划与协调"]
-        SONNET_START[启动 Sonnet Subagent]
-        SONNET_TRY[Sonnet 尝试解决]
-        SONNET_CHECK{是否遇到\n困难？}
-        SONNET_START --> SONNET_TRY
-        SONNET_TRY --> SONNET_CHECK
+    subgraph LAYER2["🔵 规划者层 — 规划与协调"]
+        PLANNER_START[启动规划者 Subagent]
+        PLANNER_TRY[规划者尝试解决]
+        PLANNER_CHECK{是否有把握？}
+        PLANNER_START --> PLANNER_TRY
+        PLANNER_TRY --> PLANNER_CHECK
     end
 
-    SONNET_CHECK -- "有困难" --> OPUS_SOLVE
-    SONNET_CHECK -- "无困难" --> OPUS_REVIEW
+    PLANNER_CHECK -- "UNCERTAIN — 求助顾问" --> ADVISOR_SOLVE
+    PLANNER_CHECK -- "CONFIDENT — 轻量审查" --> ADVISOR_REVIEW
 
-    subgraph LAYER3["🟣 Opus 层 — 深度推理"]
-        OPUS_SOLVE[启动 Opus Subagent\n深度解决问题]
-        OPUS_REVIEW[启动 Opus Subagent\n快速审查方案]
+    subgraph LAYER3["🟣 顾问层 — 深度推理"]
+        ADVISOR_SOLVE[顾问深度求解\n规划者遇到困难 — 顾问解锁]
+        ADVISOR_REVIEW[顾问轻量审查\n规划者有把握 — 健全性检查]
     end
 
-    OPUS_SOLVE --> MERGE
-    OPUS_REVIEW --> MERGE
+    ADVISOR_SOLVE --> MERGE
+    ADVISOR_REVIEW --> MERGE
 
-    MERGE([Opus 反馈汇聚]) --> SONNET_REFINE
+    MERGE([顾问反馈汇聚]) --> PLANNER_REFINE
 
-    subgraph LAYER2B["🔵 Sonnet 优化轮次"]
-        SONNET_REFINE[Sonnet 根据 Opus 反馈\n优化 1-2 轮]
-        SONNET_SPLIT[Sonnet 将 Plan\n拆分为原子任务列表]
-        SONNET_REFINE --> SONNET_SPLIT
+    subgraph LAYER2B["🔵 规划者精炼轮次"]
+        PLANNER_REFINE[规划者根据顾问反馈\n精炼计划]
+        PLANNER_SPLIT[规划者将计划\n拆分为原子任务列表]
+        PLANNER_REFINE --> PLANNER_SPLIT
     end
 
-    SONNET_SPLIT --> DISPATCH
+    PLANNER_SPLIT --> DISPATCH
 
     DISPATCH([任务分发]) --> T1 & T2 & T3
 
-    subgraph LAYER4["🟢 Haiku 并行执行层"]
-        T1[Haiku Worker 1\n原子任务 A]
-        T2[Haiku Worker 2\n原子任务 B]
-        T3[Haiku Worker N\n原子任务 ...]
+    subgraph LAYER4["🟢 执行者并行层"]
+        T1[执行者 Worker 1\n原子任务 A]
+        T2[执行者 Worker 2\n原子任务 B]
+        T3[执行者 Worker N\n原子任务 ...]
 
         T1_CHECK{执行\n成功？}
         T2_CHECK{执行\n成功？}
@@ -144,36 +144,36 @@ flowchart TD
         T3 --> T3_CHECK
     end
 
-    T1_CHECK -- "✅ 成功" --> COLLECT
-    T2_CHECK -- "✅ 成功" --> COLLECT
-    T3_CHECK -- "✅ 成功" --> COLLECT
+    T1_CHECK -- "✅ DONE" --> COLLECT
+    T2_CHECK -- "✅ DONE" --> COLLECT
+    T3_CHECK -- "✅ DONE" --> COLLECT
 
-    T1_CHECK -- "❌ 问题" --> ESCALATE1
-    T2_CHECK -- "❌ 问题" --> ESCALATE2
-    T3_CHECK -- "❌ 问题" --> ESCALATE3
+    T1_CHECK -- "❌ BLOCKED" --> ESC1
+    T2_CHECK -- "❌ BLOCKED" --> ESC2
+    T3_CHECK -- "❌ BLOCKED" --> ESC3
 
-    subgraph ESCALATE_LAYER["🔵 Sonnet 故障处理"]
-        ESCALATE1[Sonnet 解决\nWorker 1 问题]
-        ESCALATE2[Sonnet 解决\nWorker 2 问题]
-        ESCALATE3[Sonnet 解决\nWorker N 问题]
+    subgraph ESC_LAYER["🔵 规划者升级处理"]
+        ESC1[规划者解决\nWorker 1 阻塞]
+        ESC2[规划者解决\nWorker 2 阻塞]
+        ESC3[规划者解决\nWorker N 阻塞]
     end
 
-    ESCALATE1 -- "方案传回" --> T1
-    ESCALATE2 -- "方案传回" --> T2
-    ESCALATE3 -- "方案传回" --> T3
+    ESC1 -- "指令传回" --> T1
+    ESC2 -- "指令传回" --> T2
+    ESC3 -- "指令传回" --> T3
 
     COLLECT([📦 收集所有结果]) --> FINAL([✅ 最终输出])
 
-    classDef haiku fill:#1a3a2a,stroke:#4ade80,color:#86efac
-    classDef sonnet fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
-    classDef opus fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
+    classDef executor fill:#1a3a2a,stroke:#4ade80,color:#86efac
+    classDef planner fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
+    classDef advisor fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
     classDef terminal fill:#1e2130,stroke:#64748b,color:#94a3b8
     classDef merge fill:#2a2a1a,stroke:#fbbf24,color:#fde68a
 
-    class HAIKU,T1,T2,T3 haiku
-    class SONNET_START,SONNET_TRY,SONNET_REFINE,SONNET_SPLIT,ESCALATE1,ESCALATE2,ESCALATE3 sonnet
-    class OPUS_SOLVE,OPUS_REVIEW opus
-    class HAIKU_DONE,FINAL terminal
+    class EXECUTOR,T1,T2,T3 executor
+    class PLANNER_START,PLANNER_TRY,PLANNER_REFINE,PLANNER_SPLIT,ESC1,ESC2,ESC3 planner
+    class ADVISOR_SOLVE,ADVISOR_REVIEW advisor
+    class DONE,FINAL terminal
     class MERGE,DISPATCH,COLLECT merge
     </div>
   </div>
