@@ -122,12 +122,14 @@ flowchart TD
 
 ```bash
 # 全局安装（所有项目可用）
-cp SKILL.md ~/.claude/commands/smart-cascade.md
-cp smart-cascade.json ~/.claude/commands/smart-cascade.json
+mkdir -p ~/.claude/commands/smart-cascade
+cp SKILL.md ~/.claude/commands/smart-cascade/
+cp smart-cascade.json ~/.claude/commands/smart-cascade/
 
 # 或项目级安装
-cp SKILL.md .claude/commands/smart-cascade.md
-cp smart-cascade.json .claude/commands/smart-cascade.json
+mkdir -p .claude/commands/smart-cascade
+cp SKILL.md .claude/commands/smart-cascade/
+cp smart-cascade.json .claude/commands/smart-cascade/
 ```
 
 ## 使用
