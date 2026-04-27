@@ -118,18 +118,18 @@ flowchart TD
 
 ## 安装
 
-将 skill 文件复制到 Claude Code commands 目录：
+将 skill 文件复制到 Claude Code skills 目录：
 
 ```bash
 # 全局安装（所有项目可用）
-mkdir -p ~/.claude/commands/smart-cascade
-cp SKILL.md ~/.claude/commands/smart-cascade/
-cp smart-cascade.json ~/.claude/commands/smart-cascade/
+mkdir -p ~/.claude/skills/smart-cascade
+cp SKILL.md ~/.claude/skills/smart-cascade/
+cp smart-cascade.json ~/.claude/skills/smart-cascade/
 
 # 或项目级安装
-mkdir -p .claude/commands/smart-cascade
-cp SKILL.md .claude/commands/smart-cascade/
-cp smart-cascade.json .claude/commands/smart-cascade/
+mkdir -p .claude/skills/smart-cascade
+cp SKILL.md .claude/skills/smart-cascade/
+cp smart-cascade.json .claude/skills/smart-cascade/
 ```
 
 ## 使用
