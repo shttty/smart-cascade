@@ -1,5 +1,7 @@
 # smart-cascade
 
+**[中文](README-zh.md)** | English
+
 A Claude Code skill for tiered model orchestration. Routes tasks across configurable Advisor → Planner → Executor layers based on complexity, with parallel worker dispatch and automatic escalation.
 
 ## How it works
