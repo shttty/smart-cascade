@@ -292,7 +292,9 @@ When a worker reports `BLOCKED`:
 
 For environment blockers, attempt auto-fix then re-dispatch the same task. **Max 2 auto-fix attempts per task** — if the environment issue persists after 2 tries, escalate as a logic/design blocker (counts toward the three-strike limit).
 
-For logic/design blockers:
+For logic/design blockers, the escalation chain is:
+
+**Strike 1 — Planner solo:**
 
 1. Build a compact handoff for the blocker:
    - `task`: the blocked task title
@@ -301,16 +303,17 @@ For logic/design blockers:
    - `attempted`: worker's partial output (if any)
    - `files_in_play`: task inputs/outputs
 
-2. Spawn Planner escalation advisor directly:
+2. Spawn Planner escalation advisor:
 
    ```yaml
    Agent:
-     description: "Planner escalation advisor — task {task.id} blocked"
+     description: "Planner escalation advisor — task {task.id} blocked (attempt 1)"
      model: "{PLANNER_MODEL}"
      prompt: |
        An Executor is blocked on a task. Provide a single actionable directive
        to unblock it. Do NOT provide analysis, alternatives, or reasoning —
        output one concrete instruction the executor can follow immediately.
+       If you are not confident in a solution, end with: UNCERTAIN: <one sentence why>
 
        <handoff>
        task: {task.title}
@@ -324,16 +327,41 @@ For logic/design blockers:
        DIRECTIVE: <one sentence — exactly what the Executor worker should do next>
    ```
 
-3. Extract the `DIRECTIVE` line from the Planner's response.
+3. If Planner emits `UNCERTAIN`, proceed to **Strike 2 — Planner + Advisor** immediately (do not re-dispatch the worker yet).
+4. Otherwise extract the `DIRECTIVE` and re-dispatch the worker.
 
-4. Re-dispatch the same task to a new Executor worker with only the directive appended:
+**Strike 2 — Planner + Advisor (triggered when Planner is uncertain OR worker is BLOCKED again after Strike 1):**
+
+1. Spawn Advisor to deep-solve the blocker:
+
    ```yaml
-   <escalation_guidance>
-   {DIRECTIVE from step 3 — single sentence only}
-   </escalation_guidance>
+   Agent:
+     description: "Advisor deep solve — task {task.id} blocked (attempt 2)"
+     model: "{ADVISOR_MODEL}"
+     prompt: |
+       A Planner is unable to resolve a worker blocker. Provide deep expert guidance.
+       Think through the root cause, risks, and the single best resolution path.
+
+       <handoff>
+       task: {task.title}
+       situation: {plan_context summary — 2 sentences max}
+       blocked_on: {worker's BLOCKED message verbatim}
+       planner_uncertain: {Planner's UNCERTAIN signal if present, else "Planner gave directive but worker remained blocked"}
+       files_in_play: {task inputs/outputs}
+       </handoff>
+
+       Respond in this structure:
+       1. **Root cause** — why is this blocked
+       2. **Resolution** — the single best path forward
+       3. **Directive** — one concrete instruction for the executor
    ```
 
-5. If the worker reports `BLOCKED` a **third** time after escalation → surface to user directly. Three strikes total (original + 2 escalation retries).
+2. Planner distills Advisor's `Directive` into a single-sentence `DIRECTIVE` (never pass raw Advisor output to the Executor).
+3. Re-dispatch the worker with the distilled directive.
+
+**Strike 3 — surface to user:**
+
+If the worker reports `BLOCKED` after Strike 2 → surface to user directly. Three strikes total (Strike 1 → Strike 2 → Strike 3 = notify user).
 
 **When a task reaches `failed` state (three strikes exhausted):**
 1. Log the final blocker and surface it to the user with the task details.
@@ -436,7 +464,7 @@ If the estimated total exceeds **50k tokens**, warn the user before proceeding. 
 - Confidence signal is mandatory: if the Planner omits it, treat as UNCERTAIN.
 - Parallel by default: dispatch all independent tasks simultaneously.
 - Atomic tasks only: if a task requires a decision, it's not atomic — refine the split.
-- Three escalations max per task: BLOCKED → Planner → retry → Planner → retry → if BLOCKED again, surface to user.
+- Three escalations max per task: BLOCKED → Planner (Strike 1) → retry → if BLOCKED again or Planner uncertain → Planner + Advisor (Strike 2) → retry → if BLOCKED again → surface to user (Strike 3).
 - Escalation is always inline agent calls — no external skill dependencies.
 - **Planner plans, never executes.** The Planner's role is planning, refinement, and escalation guidance only. It must not directly execute tasks assigned to Executor workers — not even partially. Explicit exceptions (these are last-resort fallbacks, not normal flow):
   - Executor worker crashes twice on the same task → Planner executes as temporary worker, noting: `> *Executor crashed on task {id} — Planner executing as temporary worker.*`

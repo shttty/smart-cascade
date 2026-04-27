@@ -68,19 +68,36 @@ flowchart TD
     T2_CHECK -- "✅ DONE" --> COLLECT
     T3_CHECK -- "✅ DONE" --> COLLECT
 
-    T1_CHECK -- "❌ BLOCKED" --> ESC1
-    T2_CHECK -- "❌ BLOCKED" --> ESC2
-    T3_CHECK -- "❌ BLOCKED" --> ESC3
+    T1_CHECK -- "❌ BLOCKED" --> ESC1_P
+    T2_CHECK -- "❌ BLOCKED" --> ESC2_P
+    T3_CHECK -- "❌ BLOCKED" --> ESC3_P
 
-    subgraph ESC_LAYER["🔵 Planner Escalation"]
-        ESC1[Planner resolves\nWorker 1 blocker]
-        ESC2[Planner resolves\nWorker 2 blocker]
-        ESC3[Planner resolves\nWorker N blocker]
+    subgraph ESC_LAYER["🔵🟣 Escalation — Planner → Advisor if needed"]
+        ESC1_P[Strike 1: Planner\nattempts directive]
+        ESC1_U{Planner\nconfident?}
+        ESC1_A[Strike 2: Advisor\ndeep solve]
+        ESC1_P --> ESC1_U
+        ESC1_U -- "UNCERTAIN or\nstill BLOCKED" --> ESC1_A
+        ESC1_A -- "Planner distills\ndirective" --> ESC1_U
+
+        ESC2_P[Strike 1: Planner\nattempts directive]
+        ESC2_U{Planner\nconfident?}
+        ESC2_A[Strike 2: Advisor\ndeep solve]
+        ESC2_P --> ESC2_U
+        ESC2_U -- "UNCERTAIN or\nstill BLOCKED" --> ESC2_A
+        ESC2_A -- "Planner distills\ndirective" --> ESC2_U
+
+        ESC3_P[Strike 1: Planner\nattempts directive]
+        ESC3_U{Planner\nconfident?}
+        ESC3_A[Strike 2: Advisor\ndeep solve]
+        ESC3_P --> ESC3_U
+        ESC3_U -- "UNCERTAIN or\nstill BLOCKED" --> ESC3_A
+        ESC3_A -- "Planner distills\ndirective" --> ESC3_U
     end
 
-    ESC1 -- "DIRECTIVE" --> T1
-    ESC2 -- "DIRECTIVE" --> T2
-    ESC3 -- "DIRECTIVE" --> T3
+    ESC1_U -- "DIRECTIVE" --> T1
+    ESC2_U -- "DIRECTIVE" --> T2
+    ESC3_U -- "DIRECTIVE" --> T3
 
     COLLECT([📦 Collect all results]) --> FINAL([✅ Final Output])
 

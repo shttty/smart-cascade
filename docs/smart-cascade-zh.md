@@ -291,7 +291,9 @@ Agent:
 
 对于环境类阻塞，尝试自动修复后重新分发同一任务。**每个任务最多 2 次自动修复尝试** — 如果环境问题在 2 次后仍然存在，作为逻辑/设计类阻塞升级（计入三振限制）。
 
-对于逻辑/设计类阻塞：
+对于逻辑/设计类阻塞，升级链路如下：
+
+**第一振 — 规划者独立处理：**
 
 1. 为阻塞构建紧凑交接：
    - `task`：被阻塞的任务标题
@@ -300,16 +302,17 @@ Agent:
    - `attempted`：worker 的部分输出（如有）
    - `files_in_play`：任务输入/输出
 
-2. 直接生成规划者升级顾问：
+2. 生成规划者升级顾问：
 
    ```yaml
    Agent:
-     description: "规划者升级顾问 — 任务 {task.id} 被阻塞"
+     description: "规划者升级顾问 — 任务 {task.id} 被阻塞（第 1 次）"
      model: "{PLANNER_MODEL}"
      prompt: |
        一个执行者在任务上被阻塞。提供一个可操作的指令来解除阻塞。
        不要提供分析、替代方案或推理 —
        输出一个执行者可以立即执行的具体指令。
+       如果你对解决方案没有把握，在末尾加上：UNCERTAIN: <一句话说明原因>
 
        <handoff>
        task: {task.title}
@@ -323,16 +326,41 @@ Agent:
        DIRECTIVE: <一句话 — 执行者 worker 下一步应该做什么>
    ```
 
-3. 从规划者的响应中提取 `DIRECTIVE` 行。
+3. 如果规划者输出 `UNCERTAIN`，立即进入**第二振 — 规划者 + 顾问**（不重新分发 worker）。
+4. 否则提取 `DIRECTIVE` 并重新分发 worker。
 
-4. 将同一任务重新分发给新的执行者 worker，仅附加指令：
+**第二振 — 规划者 + 顾问（规划者不确定，或第一振后 worker 再次 BLOCKED）：**
+
+1. 生成顾问深度求解：
+
    ```yaml
-   <escalation_guidance>
-   {步骤 3 的 DIRECTIVE — 仅一句话}
-   </escalation_guidance>
+   Agent:
+     description: "顾问深度求解 — 任务 {task.id} 被阻塞（第 2 次）"
+     model: "{ADVISOR_MODEL}"
+     prompt: |
+       规划者无法解决一个 worker 阻塞。请提供深度专家指导。
+       分析根本原因、风险，并给出最佳解决路径。
+
+       <handoff>
+       task: {task.title}
+       situation: {plan_context 摘要 — 最多 2 句话}
+       blocked_on: {worker 的 BLOCKED 消息原文}
+       planner_uncertain: {规划者的 UNCERTAIN 信号（如有），否则填"规划者给出了指令但 worker 仍然阻塞"}
+       files_in_play: {任务输入/输出}
+       </handoff>
+
+       按以下结构回复：
+       1. **根本原因** — 为什么会阻塞
+       2. **解决方案** — 最佳解决路径
+       3. **指令** — 给执行者的一条具体操作指令
    ```
 
-5. 如果 worker 在升级后第**三**次报告 `BLOCKED` → 直接通知用户。总共三振（原始 + 2 次升级重试）。
+2. 规划者将顾问的「指令」提炼为单句 `DIRECTIVE`（绝不将顾问原始输出传递给执行者）。
+3. 重新分发 worker，附加提炼后的指令。
+
+**第三振 — 通知用户：**
+
+如果 worker 在第二振后再次报告 `BLOCKED` → 直接通知用户。总共三振（第一振 → 第二振 → 第三振 = 通知用户）。
 
 **当任务达到 `failed` 状态（三振用尽）时：**
 1. 记录最终阻塞原因并将任务详情通知用户。

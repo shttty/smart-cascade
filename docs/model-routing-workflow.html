@@ -148,19 +148,36 @@ flowchart TD
     T2_CHECK -- "✅ DONE" --> COLLECT
     T3_CHECK -- "✅ DONE" --> COLLECT
 
-    T1_CHECK -- "❌ BLOCKED" --> ESC1
-    T2_CHECK -- "❌ BLOCKED" --> ESC2
-    T3_CHECK -- "❌ BLOCKED" --> ESC3
+    T1_CHECK -- "❌ BLOCKED" --> ESC1_P
+    T2_CHECK -- "❌ BLOCKED" --> ESC2_P
+    T3_CHECK -- "❌ BLOCKED" --> ESC3_P
 
-    subgraph ESC_LAYER["🔵 规划者升级处理"]
-        ESC1[规划者解决\nWorker 1 阻塞]
-        ESC2[规划者解决\nWorker 2 阻塞]
-        ESC3[规划者解决\nWorker N 阻塞]
+    subgraph ESC_LAYER["🔵🟣 升级处理 — 规划者 → 顾问（如需）"]
+        ESC1_P[第一振：规划者\n尝试给出指令]
+        ESC1_U{规划者\n有把握？}
+        ESC1_A[第二振：顾问\n深度求解]
+        ESC1_P --> ESC1_U
+        ESC1_U -- "UNCERTAIN 或仍然 BLOCKED" --> ESC1_A
+        ESC1_A -- "规划者提炼指令" --> ESC1_U
+
+        ESC2_P[第一振：规划者\n尝试给出指令]
+        ESC2_U{规划者\n有把握？}
+        ESC2_A[第二振：顾问\n深度求解]
+        ESC2_P --> ESC2_U
+        ESC2_U -- "UNCERTAIN 或仍然 BLOCKED" --> ESC2_A
+        ESC2_A -- "规划者提炼指令" --> ESC2_U
+
+        ESC3_P[第一振：规划者\n尝试给出指令]
+        ESC3_U{规划者\n有把握？}
+        ESC3_A[第二振：顾问\n深度求解]
+        ESC3_P --> ESC3_U
+        ESC3_U -- "UNCERTAIN 或仍然 BLOCKED" --> ESC3_A
+        ESC3_A -- "规划者提炼指令" --> ESC3_U
     end
 
-    ESC1 -- "指令传回" --> T1
-    ESC2 -- "指令传回" --> T2
-    ESC3 -- "指令传回" --> T3
+    ESC1_U -- "指令传回" --> T1
+    ESC2_U -- "指令传回" --> T2
+    ESC3_U -- "指令传回" --> T3
 
     COLLECT([📦 收集所有结果]) --> FINAL([✅ 最终输出])
 
