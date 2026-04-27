@@ -22,13 +22,14 @@ description: "分层模型编排，适用于中等到复杂任务。必须通过
 在调用时指定参数可覆盖默认模型：
 
 ```
-/smart-cascade --advisor=opus --planner=sonnet --executor=haiku "你的任务"
+/smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "你的任务"
 ```
 
 或在与本 skill 文件同级目录下创建 `smart-cascade.json` 配置文件来持久化偏好设置：
 
 ```json
 {
+  "judge": "sonnet",
   "advisor": "opus",
   "planner": "sonnet",
   "executor": "haiku"

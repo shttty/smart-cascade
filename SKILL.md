@@ -22,7 +22,7 @@ This skill must be **explicitly invoked** — it is never auto-triggered.
 Override the default models by specifying them at invocation time:
 
 ```
-/smart-cascade --advisor=opus --planner=sonnet --executor=haiku "your task"
+/smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "your task"
 ```
 
 Or persist your preferences in a config file at `smart-cascade.json` in the same directory as this skill file:
