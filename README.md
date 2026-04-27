@@ -118,20 +118,16 @@ flowchart TD
 
 ## Installation
 
-Copy the skill file into your Claude Code skills directory:
+Copy the skill file into your Claude Code commands directory:
 
 ```bash
-# Claude Code CLI (global)
-cp SKILL.md ~/.claude/skills/smart-cascade.md
+# Global (available in all projects)
+cp SKILL.md ~/.claude/commands/smart-cascade.md
+cp smart-cascade.json ~/.claude/commands/smart-cascade.json
 
 # Or project-local
-cp SKILL.md .claude/skills/smart-cascade.md
-```
-
-Optionally copy the config file to the same directory:
-
-```bash
-cp smart-cascade.json ~/.claude/skills/smart-cascade.json
+cp SKILL.md .claude/commands/smart-cascade.md
+cp smart-cascade.json .claude/commands/smart-cascade.json
 ```
 
 ## Usage
