@@ -116,6 +116,11 @@ flowchart TD
     class MERGE,DISPATCH,COLLECT merge
 ```
 
+## 为什么需要 smart-cascade
+
+**Advisor 反馈循环**
+Planner ↔ Advisor 的交互是迭代的。Advisor 给出回复后，Planner 重新评估自己的信心。如果还是 UNCERTAIN，循环继续，直到 Planner 能够推进为止。执行阶段 worker 遇到阻塞时同样适用这套循环机制。
+
 ## 安装
 
 将 skill 文件复制到 Claude Code skills 目录：

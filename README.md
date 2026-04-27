@@ -116,6 +116,11 @@ flowchart TD
     class MERGE,DISPATCH,COLLECT merge
 ```
 
+## Why smart-cascade
+
+**Advisor feedback loop**
+The Planner ↔ Advisor interaction is iterative. After the Advisor responds, the Planner re-evaluates its confidence. If still UNCERTAIN, it loops back to the Advisor. This continues until the Planner can move forward. The same loop applies per-worker during execution when a worker gets blocked.
+
 ## Installation
 
 Copy the skill files into your Claude Code skills directory:
