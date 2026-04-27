@@ -468,7 +468,7 @@ If the estimated total exceeds **50k tokens**, warn the user before proceeding. 
 - Parallel by default: dispatch all independent tasks simultaneously.
 - Atomic tasks only: if a task requires a decision, it's not atomic — refine the split.
 - Three escalations max per task: BLOCKED → Planner (Strike 1) → retry → if BLOCKED again or Planner uncertain → Planner + Advisor (Strike 2) → retry → if BLOCKED again → surface to user (Strike 3).
-- Escalation is always inline agent calls — no external skill dependencies.
+- All agents (Judge, Planner, Advisor, Executor) may invoke the user's installed skills (e.g. `/tdd`, `/code-review`) when relevant to their task. **Exception: never invoke `/smart-cascade` itself** — recursive cascade is forbidden.
 - **Judge is the entry point.** All tasks enter through the Judge. Simple tasks are handled directly by the Judge. Complex tasks are handed off to the Planner — the Judge steps back entirely.
 - **Planner plans, never executes.** The Planner's role is planning, refinement, and escalation guidance only. It must not directly execute tasks assigned to Executor workers. Explicit exceptions (last-resort fallbacks):
   - Executor worker crashes twice → Planner executes as temporary worker, noting: `> *Executor crashed on task {id} — Planner executing as temporary worker.*`
