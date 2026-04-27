@@ -29,6 +29,7 @@ Or persist your preferences in a config file at `smart-cascade.json` in the same
 
 ```json
 {
+  "judge": "sonnet",
   "advisor": "opus",
   "planner": "sonnet",
   "executor": "haiku"
