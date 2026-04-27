@@ -1,6 +1,6 @@
 ---
 name: smart-cascade
-description: "Tiered model orchestration for medium-to-complex tasks. Must be explicitly invoked via /smart-cascade — never auto-triggered. Executor handles simple work directly. Medium/plan tasks escalate to Planner for planning, Advisor for review, then split into atomic tasks dispatched to parallel Executor workers. Worker failures escalate via inline Planner advisor agents."
+description: "Tiered model orchestration for medium-to-complex tasks. Must be explicitly invoked via /smart-cascade — never auto-triggered. Judge receives all tasks: simple tasks are handled directly, complex tasks are handed off to Planner. Planner plans with Advisor review, then splits into atomic tasks dispatched to parallel Executor workers. Worker failures escalate via Planner→Advisor chain."
 ---
 
 # Smart Cascade — Tiered Model Orchestration
@@ -39,32 +39,34 @@ Create or edit this file manually to set your preferred models without specifyin
 
 | Role | Parameter | Built-in Default | Purpose |
 |---|---|---|---|
+| **Judge** | `--judge` | `sonnet` | Entry point — complexity detection, simple task execution, handoff to Planner |
 | **Advisor** | `--advisor` | `opus` | Deep review, risk analysis (Phase 2) |
 | **Planner** | `--planner` | `sonnet` | Planning, refinement, escalation guidance (Phases 1, 3, 5, 5.5) |
 | **Executor** | `--executor` | `haiku` | Atomic task execution (Phase 4 workers) |
 
 **Resolution order (highest to lowest priority):**
-1. CLI parameters passed at invocation (`--advisor=...`)
-2. Config file at `~/.claude/smart-cascade.json`
-3. Built-in defaults (`opus` / `sonnet` / `haiku`)
+1. CLI parameters passed at invocation (`--judge=...`)
+2. Config file `smart-cascade.json` in the same directory as this skill file
+3. Built-in defaults (`sonnet` / `opus` / `sonnet` / `haiku`)
 
-**Reading configuration:** At the start of every cascade, resolve the three model variables — `{ADVISOR_MODEL}`, `{PLANNER_MODEL}`, `{EXECUTOR_MODEL}` — by checking CLI params first, then reading `smart-cascade.json` in the same directory as this skill file if it exists, then falling back to built-in defaults. Any valid Claude model ID is accepted (e.g. `claude-opus-4-5`, `claude-sonnet-4-5`, `claude-haiku-4-5`).
+**Reading configuration:** At the start of every cascade, resolve the four model variables — `{JUDGE_MODEL}`, `{ADVISOR_MODEL}`, `{PLANNER_MODEL}`, `{EXECUTOR_MODEL}` — by checking CLI params first, then reading `smart-cascade.json` if it exists, then falling back to built-in defaults. Any valid Claude model ID is accepted (e.g. `claude-opus-4-5`, `claude-sonnet-4-5`, `claude-haiku-4-5`).
 
 ## Phase 0: Complexity Gate
 
-Assess the task before doing anything else. Route based on complexity:
+The **Judge** receives every task first. Assess complexity and route:
 
 | Complexity | Signals | Action |
 |---|---|---|
-| **Simple** | Single Q&A, one file, < 3 steps, no planning | Handle directly — skip cascade |
-| **Medium** | Multi-file, feature impl, debugging, needs planning | Enter cascade at Phase 1 |
-| **Plan** | Architecture, cross-service, requires task breakdown | Enter cascade at Phase 1 |
+| **Simple** | Single Q&A, one file, < 3 steps, no planning | Judge handles directly — skip cascade |
+| **Medium** | Multi-file, feature impl, debugging, needs planning | Judge hands off to Planner — enter cascade at Phase 1 |
+| **Plan** | Architecture, cross-service, requires task breakdown | Judge hands off to Planner — enter cascade at Phase 1 |
 
-If simple: respond normally. Do NOT enter the cascade.
+If simple: **Judge executes the task directly** — no subagents, no cascade.
+If medium/plan: **Judge dispatches a Planner subagent** and steps back. The Planner owns all subsequent phases.
 
 **Model-tier shortcut:**
-- **Running as {EXECUTOR_MODEL}:** Dispatch {PLANNER_MODEL} subagent for Phase 1, then proceed normally.
-- **Running as {PLANNER_MODEL}:** Skip Phase 1 subagent dispatch — plan directly as yourself. After planning, self-assess confidence and emit a `CONFIDENT:` or `UNCERTAIN:` signal (same format as Phase 1). Then proceed to Phase 2 using that signal for Path A/B routing.
+- **Running as {JUDGE_MODEL}:** Assess complexity. Simple → handle directly. Medium/plan → dispatch {PLANNER_MODEL} subagent for Phase 1.
+- **Running as {PLANNER_MODEL}:** You were handed off by the Judge. Skip Phase 1 subagent dispatch — plan directly as yourself, emit a `CONFIDENT:` or `UNCERTAIN:` signal, then proceed to Phase 2.
 - **Running as {ADVISOR_MODEL}:** Skip Phase 1 and Phase 2 entirely — plan directly as yourself, then proceed to Phase 3 for task split. Self-review has no value.
 
 ---
@@ -460,16 +462,17 @@ If the estimated total exceeds **50k tokens**, warn the user before proceeding. 
 
 ## Rules
 
-- Gate first: never enter the cascade for simple tasks.
+- Gate first: Judge assesses every task — simple tasks never enter the cascade.
 - Confidence signal is mandatory: if the Planner omits it, treat as UNCERTAIN.
 - Parallel by default: dispatch all independent tasks simultaneously.
 - Atomic tasks only: if a task requires a decision, it's not atomic — refine the split.
 - Three escalations max per task: BLOCKED → Planner (Strike 1) → retry → if BLOCKED again or Planner uncertain → Planner + Advisor (Strike 2) → retry → if BLOCKED again → surface to user (Strike 3).
 - Escalation is always inline agent calls — no external skill dependencies.
-- **Planner plans, never executes.** The Planner's role is planning, refinement, and escalation guidance only. It must not directly execute tasks assigned to Executor workers — not even partially. Explicit exceptions (these are last-resort fallbacks, not normal flow):
-  - Executor worker crashes twice on the same task → Planner executes as temporary worker, noting: `> *Executor crashed on task {id} — Planner executing as temporary worker.*`
+- **Judge is the entry point.** All tasks enter through the Judge. Simple tasks are handled directly by the Judge. Complex tasks are handed off to the Planner — the Judge steps back entirely.
+- **Planner plans, never executes.** The Planner's role is planning, refinement, and escalation guidance only. It must not directly execute tasks assigned to Executor workers. Explicit exceptions (last-resort fallbacks):
+  - Executor worker crashes twice → Planner executes as temporary worker, noting: `> *Executor crashed on task {id} — Planner executing as temporary worker.*`
   - Escalation agent fails → Planner executes the blocked task directly, noting: `> *Escalation agent failed — Planner executing task {id} directly.*`
-  - Executor is confirmed unavailable (API error, model down) → Planner executes as last resort, noting: `> *Executor unavailable — Planner executing task {id} as fallback.*`
+  - Executor is confirmed unavailable → Planner executes as last resort, noting: `> *Executor unavailable — Planner executing task {id} as fallback.*`
 - **Advisor advises, never executes.** The Advisor's role is review and deep analysis only. It must not execute tasks under any circumstance, including when the Executor is unavailable. If both Executor and Planner are unavailable, surface the task to the user directly.
 - **Pass directives down, summaries up.** Information must be distilled at each layer boundary before passing:
   - **Down (→ Executor):** action directives only — *what* to do and *acceptance criteria*. Never pass trade-off analyses, alternative approaches, risk assessments, or advisor reasoning. The Executor cannot leverage this and it wastes tokens.

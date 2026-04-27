@@ -8,16 +8,16 @@ Claude Code 分层模型编排 skill。根据任务复杂度在可配置的顾�
 
 ```mermaid
 flowchart TD
-    USER([👤 用户输入]) --> EXECUTOR
+    USER([👤 用户输入]) --> JUDGE
 
-    subgraph LAYER1["🟢 执行者层 — 默认对话"]
-        EXECUTOR[执行者\n轻量对话 / 简单任务]
+    subgraph LAYER1["⚖️ 判断者层 — 入口"]
+        JUDGE[判断者\n所有任务从这里进入]
         DETECT{任务复杂度\n检测}
-        EXECUTOR --> DETECT
+        JUDGE --> DETECT
     end
 
-    DETECT -- "简单任务" --> DONE([✅ 直接回复用户])
-    DETECT -- "中等/规划任务" --> PLANNER_START
+    DETECT -- "简单 — 判断者\n直接处理" --> DONE([✅ 直接回复用户])
+    DETECT -- "中等/规划\n移交规划者" --> PLANNER_START
 
     subgraph LAYER2["🔵 规划者层 — 规划与协调"]
         PLANNER_START[启动规划者 Subagent]
@@ -101,13 +101,15 @@ flowchart TD
 
     COLLECT([📦 收集所有结果]) --> FINAL([✅ 最终输出])
 
+    classDef judge fill:#2a1a1a,stroke:#f97316,color:#fed7aa
     classDef executor fill:#1a3a2a,stroke:#4ade80,color:#86efac
     classDef planner fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
     classDef advisor fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
     classDef terminal fill:#1e2130,stroke:#64748b,color:#94a3b8
     classDef merge fill:#2a2a1a,stroke:#fbbf24,color:#fde68a
 
-    class EXECUTOR,T1,T2,T3 executor
+    class JUDGE judge
+    class T1,T2,T3 executor
     class PLANNER_START,PLANNER_TRY,PLANNER_REFINE,PLANNER_SPLIT,ESC1,ESC2,ESC3 planner
     class ADVISOR_SOLVE,ADVISOR_REVIEW advisor
     class DONE,FINAL terminal
@@ -146,7 +148,7 @@ cp smart-cascade.json ~/.claude/skills/smart-cascade.json
 ### 方式一：CLI 参数（单次调用）
 
 ```
-/smart-cascade --advisor=opus --planner=sonnet --executor=haiku "你的任务"
+/smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "你的任务"
 ```
 
 ### 方式二：配置文件（持久化）
@@ -155,6 +157,7 @@ cp smart-cascade.json ~/.claude/skills/smart-cascade.json
 
 ```json
 {
+  "judge": "sonnet",
   "advisor": "opus",
   "planner": "sonnet",
   "executor": "haiku"
@@ -163,6 +166,7 @@ cp smart-cascade.json ~/.claude/skills/smart-cascade.json
 
 | 角色 | 默认值 | 用途 |
 |---|---|---|
+| `judge` | `sonnet` | 入口 — 复杂度检测、简单任务执行、移交规划者 |
 | `advisor` | `opus` | 深度审查与风险分析（Phase 2） |
 | `planner` | `sonnet` | 规划、精炼、升级指导 |
 | `executor` | `haiku` | 原子任务执行（并行 worker） |

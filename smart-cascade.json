@@ -1,4 +1,5 @@
 {
+  "judge": "sonnet",
   "advisor": "opus",
   "planner": "sonnet",
   "executor": "haiku"

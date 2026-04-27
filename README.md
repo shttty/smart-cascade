@@ -8,16 +8,16 @@ A Claude Code skill for tiered model orchestration. Routes tasks across configur
 
 ```mermaid
 flowchart TD
-    USER([👤 User Input]) --> EXECUTOR
+    USER([👤 User Input]) --> JUDGE
 
-    subgraph LAYER1["🟢 Executor Layer — Default"]
-        EXECUTOR[Executor\nLight tasks / Simple Q&A]
+    subgraph LAYER1["⚖️ Judge Layer — Entry Point"]
+        JUDGE[Judge\nAll tasks enter here]
         DETECT{Complexity\nDetection}
-        EXECUTOR --> DETECT
+        JUDGE --> DETECT
     end
 
-    DETECT -- "Simple" --> DONE([✅ Reply directly])
-    DETECT -- "Medium / Plan" --> PLANNER_START
+    DETECT -- "Simple — Judge\nhandles directly" --> DONE([✅ Reply directly])
+    DETECT -- "Medium / Plan\nhands off to Planner" --> PLANNER_START
 
     subgraph LAYER2["🔵 Planner Layer — Planning & Coordination"]
         PLANNER_START[Spawn Planner Subagent]
@@ -101,13 +101,15 @@ flowchart TD
 
     COLLECT([📦 Collect all results]) --> FINAL([✅ Final Output])
 
+    classDef judge fill:#2a1a1a,stroke:#f97316,color:#fed7aa
     classDef executor fill:#1a3a2a,stroke:#4ade80,color:#86efac
     classDef planner fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
     classDef advisor fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
     classDef terminal fill:#1e2130,stroke:#64748b,color:#94a3b8
     classDef merge fill:#2a2a1a,stroke:#fbbf24,color:#fde68a
 
-    class EXECUTOR,T1,T2,T3 executor
+    class JUDGE judge
+    class T1,T2,T3 executor
     class PLANNER_START,PLANNER_TRY,PLANNER_REFINE,PLANNER_SPLIT,ESC1,ESC2,ESC3 planner
     class ADVISOR_SOLVE,ADVISOR_REVIEW advisor
     class DONE,FINAL terminal
@@ -146,7 +148,7 @@ This skill must be **explicitly invoked** — it is never auto-triggered.
 ### Option 1: CLI parameters (per-invocation)
 
 ```
-/smart-cascade --advisor=opus --planner=sonnet --executor=haiku "your task"
+/smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "your task"
 ```
 
 ### Option 2: Config file (persistent)
@@ -155,6 +157,7 @@ Edit `smart-cascade.json` in the same directory as the skill file:
 
 ```json
 {
+  "judge": "sonnet",
   "advisor": "opus",
   "planner": "sonnet",
   "executor": "haiku"
@@ -163,6 +166,7 @@ Edit `smart-cascade.json` in the same directory as the skill file:
 
 | Role | Default | Purpose |
 |---|---|---|
+| `judge` | `sonnet` | Entry point — complexity detection, simple task execution, handoff to Planner |
 | `advisor` | `opus` | Deep review and risk analysis (Phase 2) |
 | `planner` | `sonnet` | Planning, refinement, escalation guidance |
 | `executor` | `haiku` | Atomic task execution (parallel workers) |
