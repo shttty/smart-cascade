@@ -27,12 +27,12 @@ flowchart TD
         PLANNER_TRY --> PLANNER_CHECK
     end
 
-    PLANNER_CHECK -- "UNCERTAIN" --> ADVISOR_SOLVE
-    PLANNER_CHECK -- "CONFIDENT" --> ADVISOR_REVIEW
+    PLANNER_CHECK -- "UNCERTAIN — 求助顾问" --> ADVISOR_SOLVE
+    PLANNER_CHECK -- "CONFIDENT — 轻量审查" --> ADVISOR_REVIEW
 
     subgraph LAYER3["🟣 顾问层 — 深度推理"]
-        ADVISOR_SOLVE[启动顾问 Subagent\n深度求解]
-        ADVISOR_REVIEW[启动顾问 Subagent\n轻量审查]
+        ADVISOR_SOLVE[顾问深度求解\n规划者遇到困难 — 顾问解锁]
+        ADVISOR_REVIEW[顾问轻量审查\n规划者有把握 — 健全性检查]
     end
 
     ADVISOR_SOLVE --> MERGE

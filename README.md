@@ -27,12 +27,12 @@ flowchart TD
         PLANNER_TRY --> PLANNER_CHECK
     end
 
-    PLANNER_CHECK -- "UNCERTAIN" --> ADVISOR_SOLVE
-    PLANNER_CHECK -- "CONFIDENT" --> ADVISOR_REVIEW
+    PLANNER_CHECK -- "UNCERTAIN — asks Advisor" --> ADVISOR_SOLVE
+    PLANNER_CHECK -- "CONFIDENT — light review" --> ADVISOR_REVIEW
 
     subgraph LAYER3["🟣 Advisor Layer — Deep Reasoning"]
-        ADVISOR_SOLVE[Spawn Advisor Subagent\nDeep Solve]
-        ADVISOR_REVIEW[Spawn Advisor Subagent\nLight Review]
+        ADVISOR_SOLVE[Advisor Deep Solve\nPlanner was stuck — Advisor unblocks]
+        ADVISOR_REVIEW[Advisor Light Review\nPlanner was confident — sanity check]
     end
 
     ADVISOR_SOLVE --> MERGE
