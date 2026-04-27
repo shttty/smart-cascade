@@ -191,6 +191,12 @@ cp smart-cascade.json .claude/skills/smart-cascade/
 | 5.5 | 跨任务集成一致性检查 |
 | 6 | 汇总结果并展示 |
 
+## Skill 调用
+
+所有 agent（判断者、规划者、顾问、执行者）均可调用用户已安装的 skill（如 `/tdd`、`/code-review`、`/simplify`），以便级联充分利用你现有的工具链。
+
+**限制：** 禁止递归调用 `/smart-cascade` 自身。
+
 ## Skill 定义
 
 完整的中文 skill 定义（含所有 Phase 细节、降级规则、规则约束）：

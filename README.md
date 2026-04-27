@@ -191,6 +191,12 @@ Any valid Claude model ID is accepted (e.g. `claude-opus-4-5`, `claude-sonnet-4-
 | 5.5 | Integration check across all completed tasks |
 | 6 | Results collected and presented |
 
+## Skill Invocation
+
+All agents (Judge, Planner, Advisor, Executor) can invoke the user's installed skills (e.g. `/tdd`, `/code-review`, `/simplify`) when relevant to their task. This allows the cascade to leverage your existing toolchain.
+
+**Restriction:** Recursive invocation of `/smart-cascade` itself is forbidden.
+
 ## Files
 
 | File | Description |
