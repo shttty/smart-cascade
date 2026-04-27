@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>分层模型路由工作流</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 24px 16px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: #7dd3fc;
+      margin-bottom: 6px;
+      flex-shrink: 0;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .toolbar button {
+      background: #1e2130;
+      border: 1px solid #2d3348;
+      border-radius: 6px;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 4px 14px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .toolbar button:hover {
+      background: #2d3348;
+      color: #e2e8f0;
+    }
+    .hint {
+      text-align: center;
+      font-size: 11px;
+      color: #475569;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+    .diagram-wrap {
+      background: #1e2130;
+      border: 1px solid #2d3348;
+      border-radius: 12px;
+      flex: 1;
+      overflow: hidden;
+      cursor: grab;
+      position: relative;
+    }
+    .diagram-wrap:active { cursor: grabbing; }
+    .mermaid { width: 100%; height: 100%; }
+    .mermaid svg { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <h1>分层模型路由工作流</h1>
+  <p class="subtitle">Haiku &middot; Sonnet &middot; Opus &middot; 智能升降级调度</p>
+
+  <div class="toolbar">
+    <button onclick="panZoom && panZoom.zoomIn()">放大 ＋</button>
+    <button onclick="panZoom && panZoom.zoomOut()">缩小 －</button>
+    <button onclick="panZoom && panZoom.resetZoom() && panZoom.resetPan()">重置</button>
+  </div>
+  <p class="hint">滚轮缩放 · 拖拽平移</p>
+
+  <div class="diagram-wrap">
+    <div class="mermaid">
+flowchart TD
+    USER([👤 用户输入]) --> HAIKU
+
+    subgraph LAYER1["🟢 Haiku 层 — 默认对话"]
+        HAIKU[Haiku\n轻量对话 / 简单任务]
+        HAIKU_DETECT{任务复杂度\n检测}
+        HAIKU --> HAIKU_DETECT
+    end
+
+    HAIKU_DETECT -- "简单任务" --> HAIKU_DONE([✅ 直接回复用户])
+    HAIKU_DETECT -- "中型任务 / Plan" --> SONNET_START
+
+    subgraph LAYER2["🔵 Sonnet 层 — 规划与协调"]
+        SONNET_START[启动 Sonnet Subagent]
+        SONNET_TRY[Sonnet 尝试解决]
+        SONNET_CHECK{是否遇到\n困难？}
+        SONNET_START --> SONNET_TRY
+        SONNET_TRY --> SONNET_CHECK
+    end
+
+    SONNET_CHECK -- "有困难" --> OPUS_SOLVE
+    SONNET_CHECK -- "无困难" --> OPUS_REVIEW
+
+    subgraph LAYER3["🟣 Opus 层 — 深度推理"]
+        OPUS_SOLVE[启动 Opus Subagent\n深度解决问题]
+        OPUS_REVIEW[启动 Opus Subagent\n快速审查方案]
+    end
+
+    OPUS_SOLVE --> MERGE
+    OPUS_REVIEW --> MERGE
+
+    MERGE([Opus 反馈汇聚]) --> SONNET_REFINE
+
+    subgraph LAYER2B["🔵 Sonnet 优化轮次"]
+        SONNET_REFINE[Sonnet 根据 Opus 反馈\n优化 1-2 轮]
+        SONNET_SPLIT[Sonnet 将 Plan\n拆分为原子任务列表]
+        SONNET_REFINE --> SONNET_SPLIT
+    end
+
+    SONNET_SPLIT --> DISPATCH
+
+    DISPATCH([任务分发]) --> T1 & T2 & T3
+
+    subgraph LAYER4["🟢 Haiku 并行执行层"]
+        T1[Haiku Worker 1\n原子任务 A]
+        T2[Haiku Worker 2\n原子任务 B]
+        T3[Haiku Worker N\n原子任务 ...]
+
+        T1_CHECK{执行\n成功？}
+        T2_CHECK{执行\n成功？}
+        T3_CHECK{执行\n成功？}
+
+        T1 --> T1_CHECK
+        T2 --> T2_CHECK
+        T3 --> T3_CHECK
+    end
+
+    T1_CHECK -- "✅ 成功" --> COLLECT
+    T2_CHECK -- "✅ 成功" --> COLLECT
+    T3_CHECK -- "✅ 成功" --> COLLECT
+
+    T1_CHECK -- "❌ 问题" --> ESCALATE1
+    T2_CHECK -- "❌ 问题" --> ESCALATE2
+    T3_CHECK -- "❌ 问题" --> ESCALATE3
+
+    subgraph ESCALATE_LAYER["🔵 Sonnet 故障处理"]
+        ESCALATE1[Sonnet 解决\nWorker 1 问题]
+        ESCALATE2[Sonnet 解决\nWorker 2 问题]
+        ESCALATE3[Sonnet 解决\nWorker N 问题]
+    end
+
+    ESCALATE1 -- "方案传回" --> T1
+    ESCALATE2 -- "方案传回" --> T2
+    ESCALATE3 -- "方案传回" --> T3
+
+    COLLECT([📦 收集所有结果]) --> FINAL([✅ 最终输出])
+
+    classDef haiku fill:#1a3a2a,stroke:#4ade80,color:#86efac
+    classDef sonnet fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
+    classDef opus fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
+    classDef terminal fill:#1e2130,stroke:#64748b,color:#94a3b8
+    classDef merge fill:#2a2a1a,stroke:#fbbf24,color:#fde68a
+
+    class HAIKU,T1,T2,T3 haiku
+    class SONNET_START,SONNET_TRY,SONNET_REFINE,SONNET_SPLIT,ESCALATE1,ESCALATE2,ESCALATE3 sonnet
+    class OPUS_SOLVE,OPUS_REVIEW opus
+    class HAIKU_DONE,FINAL terminal
+    class MERGE,DISPATCH,COLLECT merge
+    </div>
+  </div>
+
+  <script>
+    var panZoom = null;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      flowchart: {
+        curve: 'basis',
+        nodeSpacing: 50,
+        rankSpacing: 55,
+        useMaxWidth: false,
+      },
+      themeVariables: {
+        darkMode: true,
+        background: '#1e2130',
+        primaryColor: '#1e2a3a',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: '#38bdf8',
+        lineColor: '#4a5568',
+        secondaryColor: '#2d3348',
+        tertiaryColor: '#0f1117',
+        edgeLabelBackground: '#1e2130',
+        clusterBkg: '#161825',
+        clusterBorder: '#2d3348',
+        titleColor: '#7dd3fc',
+        nodeTextColor: '#e2e8f0',
+      },
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const el = document.querySelector('.mermaid');
+      const { svg } = await mermaid.render('flowchart-svg', el.textContent.trim());
+      el.innerHTML = svg;
+
+      const svgEl = el.querySelector('svg');
+      svgEl.style.width = '100%';
+      svgEl.style.height = '100%';
+      svgEl.removeAttribute('width');
+      svgEl.removeAttribute('height');
+
+      panZoom = svgPanZoom(svgEl, {
+        zoomEnabled: true,
+        panEnabled: true,
+        controlIconsEnabled: false,
+        fit: true,
+        center: true,
+        minZoom: 0.1,
+        maxZoom: 10,
+        zoomScaleSensitivity: 0.3,
+      });
+
+      window.addEventListener('resize', () => {
+        panZoom.resize();
+        panZoom.fit();
+        panZoom.center();
+      });
+    });
+  </script>
+</body>
+</html>

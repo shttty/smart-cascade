@@ -172,7 +172,8 @@ Any valid Claude model ID is accepted (e.g. `claude-opus-4-5`, `claude-sonnet-4-
 | File | Description |
 |---|---|
 | `SKILL.md` | English skill definition |
-| `smart-cascade-zh.md` | Chinese skill definition |
+| `docs/smart-cascade-zh.md` | Chinese skill definition |
+| `docs/model-routing-workflow.html` | Interactive routing workflow diagram |
 | `smart-cascade.json` | User config (models) |
 
 ## License

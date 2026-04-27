@@ -179,6 +179,7 @@ cp smart-cascade.json ~/.claude/skills/smart-cascade.json
 |---|---|
 | `SKILL.md` | 英文 skill 定义 |
 | `docs/smart-cascade-zh.md` | 中文 skill 定义 |
+| `docs/model-routing-workflow.html` | 可交互路由工作流图 |
 | `smart-cascade.json` | 模型配置文件 |
 
 ## 协议
