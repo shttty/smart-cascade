@@ -6,11 +6,95 @@ A Claude Code skill for tiered model orchestration. Routes tasks across configur
 
 ## How it works
 
-```
-Simple task  →  handle directly, skip cascade
-Medium/Plan  →  Planner plans → Advisor reviews → split into atomic tasks → Executor workers (parallel)
-                                                                              ↓ BLOCKED?
-                                                                         Planner escalates → retry
+```mermaid
+flowchart TD
+    USER([👤 User Input]) --> EXECUTOR
+
+    subgraph LAYER1["🟢 Executor Layer — Default"]
+        EXECUTOR[Executor\nLight tasks / Simple Q&A]
+        DETECT{Complexity\nDetection}
+        EXECUTOR --> DETECT
+    end
+
+    DETECT -- "Simple" --> DONE([✅ Reply directly])
+    DETECT -- "Medium / Plan" --> PLANNER_START
+
+    subgraph LAYER2["🔵 Planner Layer — Planning & Coordination"]
+        PLANNER_START[Spawn Planner Subagent]
+        PLANNER_TRY[Planner attempts task]
+        PLANNER_CHECK{Confident?}
+        PLANNER_START --> PLANNER_TRY
+        PLANNER_TRY --> PLANNER_CHECK
+    end
+
+    PLANNER_CHECK -- "UNCERTAIN" --> ADVISOR_SOLVE
+    PLANNER_CHECK -- "CONFIDENT" --> ADVISOR_REVIEW
+
+    subgraph LAYER3["🟣 Advisor Layer — Deep Reasoning"]
+        ADVISOR_SOLVE[Spawn Advisor Subagent\nDeep Solve]
+        ADVISOR_REVIEW[Spawn Advisor Subagent\nLight Review]
+    end
+
+    ADVISOR_SOLVE --> MERGE
+    ADVISOR_REVIEW --> MERGE
+
+    MERGE([Advisor feedback merged]) --> PLANNER_REFINE
+
+    subgraph LAYER2B["🔵 Planner Refinement"]
+        PLANNER_REFINE[Planner refines plan\nbased on Advisor feedback]
+        PLANNER_SPLIT[Planner splits plan\ninto atomic task list]
+        PLANNER_REFINE --> PLANNER_SPLIT
+    end
+
+    PLANNER_SPLIT --> DISPATCH
+
+    DISPATCH([Task Dispatch]) --> T1 & T2 & T3
+
+    subgraph LAYER4["🟢 Executor Parallel Workers"]
+        T1[Executor Worker 1\nAtomic Task A]
+        T2[Executor Worker 2\nAtomic Task B]
+        T3[Executor Worker N\nAtomic Task ...]
+
+        T1_CHECK{Done?}
+        T2_CHECK{Done?}
+        T3_CHECK{Done?}
+
+        T1 --> T1_CHECK
+        T2 --> T2_CHECK
+        T3 --> T3_CHECK
+    end
+
+    T1_CHECK -- "✅ DONE" --> COLLECT
+    T2_CHECK -- "✅ DONE" --> COLLECT
+    T3_CHECK -- "✅ DONE" --> COLLECT
+
+    T1_CHECK -- "❌ BLOCKED" --> ESC1
+    T2_CHECK -- "❌ BLOCKED" --> ESC2
+    T3_CHECK -- "❌ BLOCKED" --> ESC3
+
+    subgraph ESC_LAYER["🔵 Planner Escalation"]
+        ESC1[Planner resolves\nWorker 1 blocker]
+        ESC2[Planner resolves\nWorker 2 blocker]
+        ESC3[Planner resolves\nWorker N blocker]
+    end
+
+    ESC1 -- "DIRECTIVE" --> T1
+    ESC2 -- "DIRECTIVE" --> T2
+    ESC3 -- "DIRECTIVE" --> T3
+
+    COLLECT([📦 Collect all results]) --> FINAL([✅ Final Output])
+
+    classDef executor fill:#1a3a2a,stroke:#4ade80,color:#86efac
+    classDef planner fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
+    classDef advisor fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
+    classDef terminal fill:#1e2130,stroke:#64748b,color:#94a3b8
+    classDef merge fill:#2a2a1a,stroke:#fbbf24,color:#fde68a
+
+    class EXECUTOR,T1,T2,T3 executor
+    class PLANNER_START,PLANNER_TRY,PLANNER_REFINE,PLANNER_SPLIT,ESC1,ESC2,ESC3 planner
+    class ADVISOR_SOLVE,ADVISOR_REVIEW advisor
+    class DONE,FINAL terminal
+    class MERGE,DISPATCH,COLLECT merge
 ```
 
 ## Installation

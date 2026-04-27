@@ -6,11 +6,95 @@ Claude Code 分层模型编排 skill。根据任务复杂度在可配置的顾�
 
 ## 工作原理
 
-```
-简单任务  →  直接处理，跳过级联
-中等/规划  →  规划者规划 → 顾问审查 → 拆分原子任务 → 执行者 worker（并行）
-                                                          ↓ BLOCKED?
-                                                     规划者升级 → 重试
+```mermaid
+flowchart TD
+    USER([👤 用户输入]) --> EXECUTOR
+
+    subgraph LAYER1["🟢 执行者层 — 默认对话"]
+        EXECUTOR[执行者\n轻量对话 / 简单任务]
+        DETECT{任务复杂度\n检测}
+        EXECUTOR --> DETECT
+    end
+
+    DETECT -- "简单任务" --> DONE([✅ 直接回复用户])
+    DETECT -- "中等/规划任务" --> PLANNER_START
+
+    subgraph LAYER2["🔵 规划者层 — 规划与协调"]
+        PLANNER_START[启动规划者 Subagent]
+        PLANNER_TRY[规划者尝试解决]
+        PLANNER_CHECK{是否有把握？}
+        PLANNER_START --> PLANNER_TRY
+        PLANNER_TRY --> PLANNER_CHECK
+    end
+
+    PLANNER_CHECK -- "UNCERTAIN" --> ADVISOR_SOLVE
+    PLANNER_CHECK -- "CONFIDENT" --> ADVISOR_REVIEW
+
+    subgraph LAYER3["🟣 顾问层 — 深度推理"]
+        ADVISOR_SOLVE[启动顾问 Subagent\n深度求解]
+        ADVISOR_REVIEW[启动顾问 Subagent\n轻量审查]
+    end
+
+    ADVISOR_SOLVE --> MERGE
+    ADVISOR_REVIEW --> MERGE
+
+    MERGE([顾问反馈汇聚]) --> PLANNER_REFINE
+
+    subgraph LAYER2B["🔵 规划者精炼轮次"]
+        PLANNER_REFINE[规划者根据顾问反馈\n精炼计划]
+        PLANNER_SPLIT[规划者将计划\n拆分为原子任务列表]
+        PLANNER_REFINE --> PLANNER_SPLIT
+    end
+
+    PLANNER_SPLIT --> DISPATCH
+
+    DISPATCH([任务分发]) --> T1 & T2 & T3
+
+    subgraph LAYER4["🟢 执行者并行层"]
+        T1[执行者 Worker 1\n原子任务 A]
+        T2[执行者 Worker 2\n原子任务 B]
+        T3[执行者 Worker N\n原子任务 ...]
+
+        T1_CHECK{执行成功？}
+        T2_CHECK{执行成功？}
+        T3_CHECK{执行成功？}
+
+        T1 --> T1_CHECK
+        T2 --> T2_CHECK
+        T3 --> T3_CHECK
+    end
+
+    T1_CHECK -- "✅ DONE" --> COLLECT
+    T2_CHECK -- "✅ DONE" --> COLLECT
+    T3_CHECK -- "✅ DONE" --> COLLECT
+
+    T1_CHECK -- "❌ BLOCKED" --> ESC1
+    T2_CHECK -- "❌ BLOCKED" --> ESC2
+    T3_CHECK -- "❌ BLOCKED" --> ESC3
+
+    subgraph ESC_LAYER["🔵 规划者升级处理"]
+        ESC1[规划者解决\nWorker 1 阻塞]
+        ESC2[规划者解决\nWorker 2 阻塞]
+        ESC3[规划者解决\nWorker N 阻塞]
+    end
+
+    ESC1 -- "指令传回" --> T1
+    ESC2 -- "指令传回" --> T2
+    ESC3 -- "指令传回" --> T3
+
+    COLLECT([📦 收集所有结果]) --> FINAL([✅ 最终输出])
+
+    classDef executor fill:#1a3a2a,stroke:#4ade80,color:#86efac
+    classDef planner fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
+    classDef advisor fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
+    classDef terminal fill:#1e2130,stroke:#64748b,color:#94a3b8
+    classDef merge fill:#2a2a1a,stroke:#fbbf24,color:#fde68a
+
+    class EXECUTOR,T1,T2,T3 executor
+    class PLANNER_START,PLANNER_TRY,PLANNER_REFINE,PLANNER_SPLIT,ESC1,ESC2,ESC3 planner
+    class ADVISOR_SOLVE,ADVISOR_REVIEW advisor
+    class DONE,FINAL terminal
+    class MERGE,DISPATCH,COLLECT merge
 ```
 
 ## 安装
