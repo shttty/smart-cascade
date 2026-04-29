@@ -142,6 +142,7 @@ cp smart-cascade.json .claude/skills/smart-cascade/
 ```
 /smart-cascade "构建用户认证的 REST API"
 /smart-cascade "重构支付模块"
+/smart-cascade --force-cascade "创建项目脚手架"
 ```
 
 本 skill 必须**显式调用** — 永不自动触发。
@@ -153,6 +154,12 @@ cp smart-cascade.json .claude/skills/smart-cascade/
 ```
 /smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "你的任务"
 ```
+
+**标志：**
+
+| 标志 | 效果 |
+|---|---|
+| `--force-cascade` | 跳过简单路径，强制所有任务走完整 Phase 1-4 级联。适用于安全敏感工作或执行 superpowers 计划。 |
 
 ### 方式二：配置文件（持久化）
 

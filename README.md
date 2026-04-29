@@ -142,6 +142,7 @@ cp smart-cascade.json .claude/skills/smart-cascade/
 ```
 /smart-cascade "build a REST API for user auth"
 /smart-cascade "refactor the payment module"
+/smart-cascade --force-cascade "create project scaffold"
 ```
 
 This skill must be **explicitly invoked** — it is never auto-triggered.
@@ -153,6 +154,12 @@ This skill must be **explicitly invoked** — it is never auto-triggered.
 ```
 /smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "your task"
 ```
+
+**Flags:**
+
+| Flag | Effect |
+|---|---|
+| `--force-cascade` | Skip Simple path — force all tasks through full Phase 1-4 cascade regardless of Judge complexity assessment. Use when every task must pass Planner + Advisor + Executor chain (e.g. security-sensitive work, superpowers plan execution). |
 
 ### Option 2: Config file (persistent)
 

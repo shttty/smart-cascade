@@ -15,6 +15,7 @@ This skill must be **explicitly invoked** — it is never auto-triggered.
 ```
 /smart-cascade "build a REST API for user auth"
 /smart-cascade "refactor the payment module"
+/smart-cascade --force-cascade "create project scaffold"
 ```
 
 ## Configuration
@@ -24,6 +25,12 @@ Override the default models by specifying them at invocation time:
 ```
 /smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "your task"
 ```
+
+**Flags:**
+
+| Flag | Effect |
+|---|---|
+| `--force-cascade` | Skip Simple path — force all tasks through full Phase 1-4 cascade regardless of Judge complexity assessment. Use when every task must pass Planner + Advisor + Executor chain (e.g. security-sensitive work, superpowers plan execution). |
 
 Or persist your preferences in a config file at `smart-cascade.json` in the same directory as this skill file:
 
@@ -62,8 +69,10 @@ The **Judge** receives every task first. Assess complexity and route:
 | **Medium** | Multi-file, feature impl, debugging, needs planning | Judge hands off to Planner — enter cascade at Phase 1 |
 | **Plan** | Architecture, cross-service, requires task breakdown | Judge hands off to Planner — enter cascade at Phase 1 |
 
-If simple: **Judge executes the task directly** — no subagents, no cascade.
-If medium/plan: **Judge dispatches a Planner subagent** and steps back. The Planner owns all subsequent phases.
+**`--force-cascade` override:** If this flag is set, skip the Simple path entirely — treat every task as Medium and dispatch to Planner regardless of complexity assessment. Use when all tasks must pass the full Planner + Advisor + Executor chain (e.g. security-sensitive work, executing a superpowers plan where every task needs quality gates).
+
+If simple (and `--force-cascade` not set): **Judge executes the task directly** — no subagents, no cascade.
+If medium/plan (or `--force-cascade` set): **Judge dispatches a Planner subagent** and steps back. The Planner owns all subsequent phases.
 
 **Model-tier shortcut:**
 - **Running as {JUDGE_MODEL}:** Assess complexity. Simple → handle directly. Medium/plan → dispatch {PLANNER_MODEL} subagent for Phase 1.
@@ -81,8 +90,10 @@ Agent:
   description: "Planner planning and confidence assessment"
   model: "{PLANNER_MODEL}"
   prompt: |
-    You are a planner-executor. Attempt to fully plan (and where applicable,
-    implement) the following task. Think carefully about scope, risks, and approach.
+    You are a PLANNER ONLY. Your sole role is to produce a plan.
+    Do NOT write files, edit files, or run commands. Do not implement anything.
+    Implementation is handled exclusively by Executor agents in a later phase.
+    Think carefully about scope, risks, and approach.
 
     After your attempt, end your response with one of these confidence signals
     on its own line:
@@ -455,7 +466,7 @@ If the estimated total exceeds **50k tokens**, warn the user before proceeding. 
 - **Planner agent fails (Phase 1)** → run Phase 1 again once. If fails again → handle task directly with current model, warn user.
 - **Planner agent fails (Phase 3)** → retry once. If fails again → orchestrator attempts task split directly using the Phase 1 plan and any available Advisor feedback. Note: `> *Phase 3 agent failed — orchestrator performing task split directly.*`
 - **Advisor agent fails** → skip Phase 2, proceed to Phase 3 with the Planner's Phase 1 output unchanged. Note: `> *Advisor review skipped ({reason}) — proceeding with unreviewed plan.*`
-- **Executor worker fails (crash, not BLOCKED)** → retry once. If fails again → Planner temporarily acts as worker to execute the task directly, noting: `> *Executor crashed on task {id} — Planner executing as temporary worker.*` Report in Phase 6 summary.
+- **Executor worker fails (crash, not BLOCKED)** → retry once with `haiku` (lowest-cost model). If fails again → retry once with `{PLANNER_MODEL}` (the configured planner model acts as temporary worker), noting: `> *Executor crashed on task {id} — retrying with {PLANNER_MODEL} as fallback worker.*` If that also fails → surface to user. Report all fallback attempts in Phase 6 summary.
 - **Planner escalation agent fails (Phase 5)** → Planner handles the blocked task directly as temporary worker, notes: `> *Escalation agent failed — Planner executing task {id} directly.*`
 - **Integration check agent fails (Phase 5.5)** → skip integration check, proceed to Phase 6. Note: `> *Integration check skipped ({reason}) — results may have cross-task inconsistencies.*`
 
