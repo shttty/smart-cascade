@@ -123,18 +123,20 @@ The Planner ↔ Advisor interaction is iterative. After the Advisor responds, th
 
 ## Installation
 
-Copy the skill files into your Claude Code skills directory:
+Copy the skill and agent files into your Claude Code directories:
 
 ```bash
 # Global (available in all projects)
 mkdir -p ~/.claude/skills/smart-cascade
+mkdir -p ~/.claude/agents
 cp SKILL.md ~/.claude/skills/smart-cascade/
-cp smart-cascade.json ~/.claude/skills/smart-cascade/
+cp agents/*.md ~/.claude/agents/
 
 # Or project-local
 mkdir -p .claude/skills/smart-cascade
+mkdir -p .claude/agents
 cp SKILL.md .claude/skills/smart-cascade/
-cp smart-cascade.json .claude/skills/smart-cascade/
+cp agents/*.md .claude/agents/
 ```
 
 ## Usage
@@ -149,41 +151,35 @@ This skill must be **explicitly invoked** — it is never auto-triggered.
 
 ## Configuration
 
-### Option 1: CLI parameters (per-invocation)
+### Changing model tiers
 
+Edit the `model:` field in the agent file:
+
+```bash
+# Change Executor from haiku to sonnet
+~/.claude/agents/smart-cascade-executor.md  # set model: sonnet
 ```
-/smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "your task"
-```
+
+| Agent file | Default model | Role |
+|---|---|---|
+| `smart-cascade-judge.md` | `sonnet` | Complexity gate |
+| `smart-cascade-planner.md` | `sonnet` | Planning only |
+| `smart-cascade-advisor.md` | `opus` | Advisory only |
+| `smart-cascade-executor.md` | `haiku` | Task execution |
 
 **Flags:**
 
 | Flag | Effect |
 |---|---|
-| `--force-cascade` | Skip Simple path — force all tasks through full Phase 1-4 cascade regardless of Judge complexity assessment. Use when every task must pass Planner + Advisor + Executor chain (e.g. security-sensitive work, superpowers plan execution). |
+| `--force-cascade` | Skip Simple path — force all tasks through full Phase 1-4 cascade. Use for security-sensitive work or superpowers plan execution. |
 
-### Option 2: Config file (persistent)
+**If a model tier is unavailable**, the cascade stops and surfaces an error with instructions to set the relevant environment variable:
 
-Edit `smart-cascade.json` in the same directory as the skill file:
-
-```json
-{
-  "judge": "sonnet",
-  "advisor": "opus",
-  "planner": "sonnet",
-  "executor": "haiku"
-}
 ```
-
-| Role | Default | Purpose |
-|---|---|---|
-| `judge` | `sonnet` | Entry point — complexity detection, simple task execution, handoff to Planner |
-| `advisor` | `opus` | Deep review and risk analysis (Phase 2) |
-| `planner` | `sonnet` | Planning, refinement, escalation guidance |
-| `executor` | `haiku` | Atomic task execution (parallel workers) |
-
-**Priority:** CLI params > config file > built-in defaults
-
-Any valid Claude model ID is accepted (e.g. `claude-opus-4-5`, `claude-sonnet-4-5`, `claude-haiku-4-5`).
+ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME   — for smart-cascade-executor
+ANTHROPIC_DEFAULT_SONNET_MODEL_NAME  — for smart-cascade-judge, smart-cascade-planner
+ANTHROPIC_DEFAULT_OPUS_MODEL_NAME    — for smart-cascade-advisor
+```
 
 ## Phases
 
@@ -211,7 +207,10 @@ All agents (Judge, Planner, Advisor, Executor) can invoke the user's installed s
 | `SKILL.md` | English skill definition |
 | `docs/smart-cascade-zh.md` | Chinese skill definition |
 | `docs/model-routing-workflow.html` | Interactive routing workflow diagram |
-| `smart-cascade.json` | User config (models) |
+| `agents/smart-cascade-judge.md` | Judge agent definition |
+| `agents/smart-cascade-planner.md` | Planner agent definition (Read/Grep/Glob only) |
+| `agents/smart-cascade-advisor.md` | Advisor agent definition (Read/Grep/Glob only) |
+| `agents/smart-cascade-executor.md` | Executor agent definition |
 
 ## License
 

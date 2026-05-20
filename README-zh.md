@@ -123,18 +123,20 @@ Planner ↔ Advisor 的交互是迭代的。Advisor 给出回复后，Planner �
 
 ## 安装
 
-将 skill 文件复制到 Claude Code skills 目录：
+将 skill 和 agent 文件复制到 Claude Code 目录：
 
 ```bash
 # 全局安装（所有项目可用）
 mkdir -p ~/.claude/skills/smart-cascade
+mkdir -p ~/.claude/agents
 cp SKILL.md ~/.claude/skills/smart-cascade/
-cp smart-cascade.json ~/.claude/skills/smart-cascade/
+cp agents/*.md ~/.claude/agents/
 
 # 或项目级安装
 mkdir -p .claude/skills/smart-cascade
+mkdir -p .claude/agents
 cp SKILL.md .claude/skills/smart-cascade/
-cp smart-cascade.json .claude/skills/smart-cascade/
+cp agents/*.md .claude/agents/
 ```
 
 ## 使用
@@ -149,11 +151,21 @@ cp smart-cascade.json .claude/skills/smart-cascade/
 
 ## 配置
 
-### 方式一：CLI 参数（单次调用）
+### 修改模型等级
 
+编辑对应 agent 文件中的 `model:` 字段：
+
+```bash
+# 将 Executor 从 haiku 改为 sonnet
+~/.claude/agents/smart-cascade-executor.md  # 设置 model: sonnet
 ```
-/smart-cascade --judge=sonnet --advisor=opus --planner=sonnet --executor=haiku "你的任务"
-```
+
+| Agent 文件 | 默认模型 | 角色 |
+|---|---|---|
+| `smart-cascade-judge.md` | `sonnet` | 复杂度门控 |
+| `smart-cascade-planner.md` | `sonnet` | 仅规划 |
+| `smart-cascade-advisor.md` | `opus` | 仅顾问 |
+| `smart-cascade-executor.md` | `haiku` | 任务执行 |
 
 **标志：**
 
@@ -161,29 +173,13 @@ cp smart-cascade.json .claude/skills/smart-cascade/
 |---|---|
 | `--force-cascade` | 跳过简单路径，强制所有任务走完整 Phase 1-4 级联。适用于安全敏感工作或执行 superpowers 计划。 |
 
-### 方式二：配置文件（持久化）
+**模型不可用时**，级联立即停止并输出错误，提示设置对应环境变量：
 
-编辑与 skill 文件同级目录下的 `smart-cascade.json`：
-
-```json
-{
-  "judge": "sonnet",
-  "advisor": "opus",
-  "planner": "sonnet",
-  "executor": "haiku"
-}
 ```
-
-| 角色 | 默认值 | 用途 |
-|---|---|---|
-| `judge` | `sonnet` | 入口 — 复杂度检测、简单任务执行、移交规划者 |
-| `advisor` | `opus` | 深度审查与风险分析（Phase 2） |
-| `planner` | `sonnet` | 规划、精炼、升级指导 |
-| `executor` | `haiku` | 原子任务执行（并行 worker） |
-
-**优先级：** CLI 参数 > 配置文件 > 内置默认值
-
-接受任何有效的 Claude 模型 ID（如 `claude-opus-4-5`、`claude-sonnet-4-5`、`claude-haiku-4-5`）。
+ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME   — 用于 smart-cascade-executor
+ANTHROPIC_DEFAULT_SONNET_MODEL_NAME  — 用于 smart-cascade-judge、smart-cascade-planner
+ANTHROPIC_DEFAULT_OPUS_MODEL_NAME    — 用于 smart-cascade-advisor
+```
 
 ## 阶段说明
 
@@ -217,7 +213,10 @@ cp smart-cascade.json .claude/skills/smart-cascade/
 | `SKILL.md` | 英文 skill 定义 |
 | `docs/smart-cascade-zh.md` | 中文 skill 定义 |
 | `docs/model-routing-workflow.html` | 可交互路由工作流图 |
-| `smart-cascade.json` | 模型配置文件 |
+| `agents/smart-cascade-judge.md` | 判断者 agent 定义 |
+| `agents/smart-cascade-planner.md` | 规划者 agent 定义（仅 Read/Grep/Glob） |
+| `agents/smart-cascade-advisor.md` | 顾问 agent 定义（仅 Read/Grep/Glob） |
+| `agents/smart-cascade-executor.md` | 执行者 agent 定义 |
 
 ## 协议
 
