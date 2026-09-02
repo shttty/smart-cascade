@@ -1,0 +1,34 @@
+# Runtime-only material intentionally excluded from the preservation snapshot
+.scratch/
+archive/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.jsonl
+**/*.log
+**/*.lock
+**/__pycache__/
+**/*.pyc
+.smart-cascade/control/
+.smart-cascade/state/
+.smart-cascade/override.yaml
+
+# Never commit live credential-bearing configuration.
+**/models.yml
+**/auth.json
+**/credentials*
+**/*secret*
+**/*token*
+**/*apikey*
+**/*api-key*
+
+# The redacted static model projection is tracked instead.
+!sources/smart-cascade-omp/agent/models.redacted.yml
+
+# Source repository metadata is not part of this snapshot.
+/.sources-git/
+
+# Local editor / OS noise
+.DS_Store
+.idea/
+.vscode/

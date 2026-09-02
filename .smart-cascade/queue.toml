@@ -1,0 +1,15 @@
+# Static top-level large-slice definition.
+# Runtime status, attempts, worktrees, and decisions live outside this file.
+
+[[slices]]
+id = "large-slice-example"
+depends_on = []
+scope = "One bounded large slice described by the controller."
+write_set = ["src/**"]
+checks = ["python3 -m pytest"]
+
+# A second [[slices]] block adds another independent large slice.
+# Root computes the maximum safe ready frontier from depends_on, write_set,
+# and shared mutable resources; do not add a parallel=true flag.
+# The Leader decides how to split a slice into children at runtime; the queue
+# declares no child topology.

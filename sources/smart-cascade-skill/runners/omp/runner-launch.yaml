@@ -1,0 +1,82 @@
+schema_version: 2
+
+runner:
+  kind: omp
+  # adapter paths are relative to this runner directory; interface is relative to the Skill root.
+  adapter_check: adapter.py
+  adapter_normalize: normalize.py
+  interface: bootstrap/runner-interface.json
+
+transport:
+  kind: herdr
+  permission_mode: auto
+
+root:
+  # Herdr's `--kind omp` supplies the executable; argv contains only native flags.
+  launch_argv:
+    - --profile
+    - smart-cascade-omp
+    - --model
+    - "@smart-cascade-root"
+    - --thinking
+    - high
+  model_role: smart-cascade-root
+  model: clp/gpt-5.6-sol
+  effort: high
+
+dispatch_contract:
+  profile_name: smart-cascade-omp
+  # process/flow references are relative to the Skill root; roles are relative to this runner directory.
+  process_reference: bootstrap/root-init.md
+  flow_reference: SKILL.md
+  roles:
+    leader: roles/smart-cascade-leader.md
+    advisor: roles/smart-cascade-advisor.md
+    semantic_executor: roles/smart-cascade-executor.md
+    escalated_semantic_executor: roles/smart-cascade-escalated-executor.md
+    mechanical_executor: roles/smart-cascade-mechanical-executor.md
+
+roles:
+  leader:
+    agent: smart-cascade-leader
+    model_role: smart-cascade-leader
+    model: clp/gpt-5.6-sol
+    thinking_level: medium
+  advisor:
+    agent: smart-cascade-advisor
+    model_role: smart-cascade-advisor
+    model: clp/gpt-5.6-sol
+    thinking_level: xhigh
+  semantic_executor:
+    agent: smart-cascade-executor
+    model_role: smart-cascade-semantic
+    model: clp/gpt-5.6-luna
+    thinking_level: xhigh
+  escalated_semantic_executor:
+    agent: smart-cascade-escalated-executor
+    model_role: smart-cascade-escalated-semantic
+    model: clp/gpt-5.6-sol
+    thinking_level: xhigh
+  mechanical_executor:
+    agent: smart-cascade-mechanical-executor
+    model_role: smart-cascade-mechanical
+    model: clp/gpt-5.6-luna
+    thinking_level: low
+
+projection_contract:
+  authority: runners/omp/runner-launch.yaml
+  root_runtime_projection: "selected adapter executes opaque root native argv"
+  child_runtime_projection: "the selected OMP profile owns role definitions, models, thinking levels, tools, and spawn permissions"
+  bootstrap_rule: "Smart Cascade validates the dispatch contract, profile role identities, and argv shape, then passes native argv unchanged"
+  rule: >-
+    Root launch and child role settings are configuration projections. Dispatch
+    prose carries task scope and control contracts; it does not redefine model,
+    tool, thinking, or spawn settings from the selected profile.
+
+change_policy:
+  precedence:
+    - explicit user or frozen run override
+    - this file
+    - runner-native default
+  config_change_after_run_freeze: blocked_environment
+  selected_profile_rewrite_requires_explicit_scope: true

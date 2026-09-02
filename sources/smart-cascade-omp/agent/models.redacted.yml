@@ -1,0 +1,14 @@
+providers:
+  clp:
+    baseUrl: "[REDACTED]"
+    apiKey: "[REDACTED]"
+    api: "openai-completions"
+    discovery:
+      type: "openai-models-list"
+    modelOverrides:
+      gpt-5.6-luna:
+        contextWindow: 372000
+      gpt-5.6-sol:
+        contextWindow: 372000
+      gpt-5.6-terra:
+        contextWindow: 372000

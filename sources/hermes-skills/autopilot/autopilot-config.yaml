@@ -1,0 +1,85 @@
+schema_version: 1
+
+# Autopilot supervision settings. Edit the values; the Skill reads them from here
+# rather than hardcoding them. Anything absent falls back to the default shown.
+
+project:
+  # Which agent, under which profile, Autopilot initializes a run's Root as.
+  # Everything else about the run — DAG, roles, models, worktrees — is Root's,
+  # and comes from the runner config Root itself loads.
+  #
+  # The OMP profile to launch Root under, passed to adapter `check` as
+  # --profile. Accepts a profile name under ~/.omp/profiles or a full profile
+  # directory, the same forms the adapter takes.
+  #
+  # An explicit selection here is persisted by the adapter into the project's
+  # own .smart-cascade/override.yaml and reused by later checks. Leave it empty
+  # to accept whatever that override already records, falling back to the runner
+  # config's dispatch_contract.profile_name — the adapter owns this resolution
+  # and stays the single source of truth for which profile a project runs under.
+  profile: smart-cascade-omp
+  runner_kind: omp
+
+  # The queue is the one thing Autopilot verifies rather than delegates: it
+  # digests the approved boundary before dispatch. Relative to the project root,
+  # which comes from the user's invocation, not from here — a run pointed at the
+  # wrong worktree is a stop condition, not something to default.
+  queue: .smart-cascade/queue.toml
+
+verifier:
+  # The cross-check agent. Started in its own pane and dispatched to like any
+  # other target; it runs the project's higher-tier verification entry points and
+  # reports each as passed, failed, or not-runnable-with-reason.
+  #
+  # enabled: false skips the cross-check entirely and leaves Root's own
+  # higher-tier reporting as the only reading.
+  enabled: true
+
+  # Herdr's `--kind` supplies the executable; launch_argv carries only native flags.
+  kind: omp
+  launch_argv:
+    - --profile
+    - smart-cascade-omp
+    - --model
+    - "@smart-cascade-advisor"
+    - --thinking
+    - xhigh
+
+  model_role: smart-cascade-advisor
+  model: clp/gpt-5.6-sol
+  effort: xhigh
+
+  # Where the verifier's pane is opened. `session` empty means the run's own
+  # Herdr session; set it to place the verifier elsewhere.
+  session: ""
+
+observation:
+  # Periodic progress observation. Completion and blocker notifications are
+  # event-driven and stay immediate regardless of what is set here.
+  #
+  # interval_minutes: 0 disables periodic observation entirely.
+  interval_minutes: 10
+
+  # Retained observation and dispatch evidence.
+  watch_output_dir: ~/.cache/agent-watch
+  dispatch_store_dir: ~/.cache/agent-dispatch
+
+  # Seconds to wait for a dispatch marker to appear in the runner transcript
+  # before reporting the dispatch unproven.
+  dispatch_verify_timeout_seconds: 30
+
+commit_boundary:
+  # Root's post-acceptance commit / keep-as-candidate dialog.
+  # answer: recommend | ask
+  #   recommend — auto-select the recommendation after the timeout below
+  #   ask       — always stop and put the choice to the user
+  answer: recommend
+  recommendation: commit
+  auto_select_after_seconds: 30
+
+change_policy:
+  precedence:
+    - explicit user or frozen run override
+    - this file
+    - skill default
+  config_change_after_run_freeze: blocked_environment

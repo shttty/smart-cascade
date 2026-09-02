@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "kind": "smart-cascade-core",
+  "files": [
+    "initialize.py",
+    "init-environment.sh",
+    "manifest.json",
+    "root-init.md",
+    "runner-interface.json",
+    "validate-queue.py",
+    "frontier.py",
+    "contracts.py",
+    "state.py"
+  ],
+  "state_directories": [
+    "control/dispatches",
+    "control/receipts",
+    "state"
+  ],
+  "candidate_artifact_kinds": [
+    "git_patch"
+  ],
+  "decisions": [
+    "PASS",
+    "REWORK",
+    "BLOCKED"
+  ]
+}
