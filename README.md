@@ -10,6 +10,63 @@ Smart Cascade 以 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/
 - **验证后再集成**：执行 agent 不直接修改主工作区；每份 patch 经过组装和复验后才进入 Git。
 - **自动返工**：验证失败会带着具体问题返回原任务，不把半成品当作完成。
 
+## 流程架构
+
+```mermaid
+flowchart TD
+    TICKETS["to-tickets 产物"] --> QUEUE["生成并确认 Queue<br/>.smart-cascade/queue.toml"]
+    QUEUE --> ROOT
+
+    subgraph ROOTLAYER["Root — 当前 session，唯一顶层协调者"]
+        ROOT["按 depends_on<br/>计算 ready frontier"]
+    end
+
+    ROOT -->|"native task, isolated=true"| LEADER
+
+    subgraph LEADERLAYER["Leader — 隔离 candidate 的唯一 assembly writer"]
+        LEADER["读取真实代码<br/>动态拆分 child patch"]
+    end
+
+    LEADER -->|"native task, isolated=true"| EX1 & EX2 & EX3
+
+    subgraph EXLAYER["Executor — 并行产出 patch，写不到生产基线"]
+        EX1["child-a<br/>独立 patch"]
+        EX2["child-b<br/>独立 patch"]
+        EX3["child-n<br/>独立 patch"]
+    end
+
+    EX1 & EX2 & EX3 -->|"strict settlement<br/>retained patch"| ASSEMBLE
+    ASSEMBLE(["Leader 按确定顺序<br/>串行应用 patch"]) --> CANDIDATE
+    CANDIDATE(["候选 + 证据<br/>交回 Root"]) --> VERIFY
+
+    subgraph VERIFYLAYER["Root 技术验收"]
+        VERIFY{"验证 settlement、patch<br/>changed paths、checks、postcondition"}
+    end
+
+    VERIFY -->|"PASS"| COMMIT["Git commit / integration<br/>推进依赖"]
+    VERIFY -->|"REWORK"| LEADER
+    VERIFY -->|"能力不足"| ADVISOR["请求 Advisor"]
+    ADVISOR --> LEADER
+
+    COMMIT --> NEXT{"还有 ready slice?"}
+    NEXT -->|"是"| ROOT
+    NEXT -->|"否"| DONE(["Root 报告结果"])
+
+    classDef root fill:#2a1a1a,stroke:#f97316,color:#fed7aa
+    classDef leader fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
+    classDef executor fill:#1a3a2a,stroke:#4ade80,color:#86efac
+    classDef advisor fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
+    classDef terminal fill:#1e2130,stroke:#64748b,color:#94a3b8
+    classDef merge fill:#2a2a1a,stroke:#fbbf24,color:#fde68a
+
+    class ROOT,VERIFY,COMMIT root
+    class LEADER leader
+    class EX1,EX2,EX3 executor
+    class ADVISOR advisor
+    class TICKETS,QUEUE,DONE,NEXT terminal
+    class ASSEMBLE,CANDIDATE merge
+```
+
 ## 安装
 
 ### 1. 安装依赖
