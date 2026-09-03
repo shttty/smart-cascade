@@ -60,6 +60,15 @@ flowchart TD
     class ASSEMBLE,CANDIDATE merge
 ```
 
+## 为什么这样分层
+
+多 agent 并行改同一个仓库，通常坏在两个地方：谁都能写基线，于是冲突要靠运气；以及 agent 自己宣布完成，没人独立核对。
+
+这里两件事都交给结构，而不是交给提示词：
+
+- **Executor 拿不到生产基线的写权限。** 它在自己的 worktree 里干活，产出是 patch。写冲突不靠事先声明文件清单来预防，而是在 Leader 串行应用 patch 时暴露，转成 `REWORK`。
+- **判决权和执行权分开。** Executor 报告完成不算数，Leader 组装出的 candidate 也不算数——Root 独立验证 settlement、retained patch、实际变更路径和验收目标，才决定 `PASS` / `REWORK` / `BLOCKED`，也只有 Root 碰 Git。
+
 ## 前置依赖
 
 | | 用途 |
@@ -73,10 +82,7 @@ OMP profile 必须支持 native task、Agent Hub 和 session resume。`./scripts
 ## Quick Start
 
 ```bash
-# 1. 检查依赖与安装漂移
 ./scripts/deploy.sh verify --runner omp --profile smart-cascade-omp
-
-# 2. 安装 Skill 与 OMP profile
 ./scripts/deploy.sh skill --runner omp
 ./scripts/deploy.sh profile --runner omp --profile smart-cascade-omp
 ```
@@ -86,169 +92,49 @@ OMP profile 必须支持 native task、Agent Hub 和 session resume。`./scripts
 ```toml
 # <你的项目>/.smart-cascade/queue.toml
 [[slices]]
-id = "stable-slice-id"
+id = "session-token-issuing"
 depends_on = []
-scope = "一个有明确完成条件的顶层目标"
-checks = ["做完之后必须成立的、可验证的验收目标"]
+scope = "用户提交有效凭据后拿到一个可用于后续请求的签名 session token"
+checks = ["新 auth 模块的单测全部通过", "现有测试套件无回归"]
 ```
 
-Queue 只表达用户目标和顶层边界，不含文件路径、child 列表、运行状态或 `parallel` 标志——每个 slice 在自己的 worktree 中执行，child 由 Leader 读代码后动态决定。`checks` 是验收目标而非命令清单：写 queue 时你还不知道该跑什么命令，但知道做完之后什么必须成立；具体验证方式由实施者在完成后决定并回报。字段语义见 [`design/smart-cascade-flow.md`](design/smart-cascade-flow.md)。
+Queue 是静态 DAG，只表达用户目标和顶层边界，不含文件路径、child 列表或运行状态。`checks` 是**验收目标**而不是命令清单——写 queue 时你还不知道该跑什么命令，但知道做完之后什么必须成立；具体怎么验由实施者在完成后决定并回报。
 
-如果不想手写，队列也可以从 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) 的产物机械生成——它的 tracer bullet 切法和 **Blocked by** 依赖图正好对应 slice 与 `depends_on`：
-
-```bash
-python3 ~/.omp/skills/smart-cascade/bootstrap/to-queue.py --help
-```
-
-写完先机械校验：
+队列也可以从 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) 的产物机械生成，它的切法和 **Blocked by** 依赖图正好对应 slice 与 `depends_on`（见 `bootstrap/to-queue.py --help`）。写完先校验：
 
 ```bash
 python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
 ```
 
-然后建立明确的 Git checkpoint，在项目目录启动 OMP session，显式调用 `smart-cascade` Skill。Skill 会展示 queue、Git base、worktree snapshot 与 adapter receipt，并要求一次明确确认——**你确认之后，当前 session 才原地成为 Root**。
+然后建立 Git checkpoint，在项目目录启动 OMP session，显式调用 `smart-cascade` Skill。Skill 会展示 queue、Git base、worktree snapshot 与 adapter receipt，要求一次明确确认——**你确认之后，当前 session 才原地成为 Root**。
 
 Smart Cascade 不会自动创建或修复 queue，不会启动另一个 session，也不会在你确认前开始任何调度。
 
----
+## 可选：Autopilot 外部监督
+
+Smart Cascade 自己跑得完整条链路。Root 在 commit 边界会停下来等确认，超时后自行 check 并 commit，流程不会卡住等人。
+
+[Autopilot](sources/hermes-skills/autopilot/) 是可选的外部监督层，改变的只有这个边界：它按住那个会自动放行的 commit 步骤，另起一个 agent 独立跑一遍项目的高层验证入口，和 Root 自己那份读数交叉比对，两份一致才放行。verifier 产出的是**证据**，判决权仍在 Root——Autopilot 不跑项目验收命令，也不 commit。
+
+它依赖已安装的 `herdr` skill 来启动和控制 Root。不需要外部监督时，整层可以不装。
 
 ## 仓库结构
 
-本仓库是 Smart Cascade Skill、OMP profile 和可选 Autopilot 外部监督材料的开发仓库。Smart Cascade 的生产拓扑是当前 OMP session 作为 Root，经 native isolated `task` 派生 Leader，再由 Leader 派生 Executor。OMP 拥有 child lifecycle、Hub、transcript、temporary isolation 与 retained patch；Root 拥有 DAG、candidate 验证、`PASS` / `REWORK` / `BLOCKED`、Git integration 与 cleanup disposition。
-
-## 三层产物
-
-`sources/smart-cascade-skill/` 是独立、可复制、平台无关的 Skill。核心不 import Autopilot 或 Herdr；具体 runner 收在 `runners/<runner>/`，避免把互不兼容的 subagent schema 混在 Skill 根目录：
-
-- `SKILL.md`：平台无关的用户入口、preflight、唯一确认边界、当前 session Root 初始化、生产循环与恢复合同。
-- `bootstrap/`：平台无关的队列、packet、result、frontier、counter 与授权核心。
-- `scripts/`：平台无关的 packet helper 和 deterministic tests。
-- `runners/omp/runner-launch.yaml`：默认 OMP runner/profile/role/isolation 和 adapter operation 投影。
-- `runners/omp/adapter.py`：`check` 执行 admission 并输出 `ADAPTER_READY`。
-- `runners/omp/normalize.py`：从权威 OMP parent transcript 验证 task invocation、lineage、strict settlement 与 retained patch。
-- `runners/omp/roles/*.md`：OMP 格式的 subagent 定义；`model` alias、`thinkingLevel`、`spawns` 等不是 Claude Code schema。
-- `runners/omp/test-adapter.py`：OMP adapter/projection 的 deterministic tests。
-
-Autopilot 是可选的外部监督 Skill，包含监督流程文档与配套监督脚本，通过已安装的 `herdr` skill 完成 Root 启动与控制。Smart Cascade 的直接路径不需要 Autopilot 或 Herdr；运行时正确性由 Root 的 candidate 验收保证。
-
-Skill 相对自身目录解析代码、core、角色和默认配置，可以检查任意外部项目。
-
-### OMP profile
-
-`sources/smart-cascade-omp/agent/` 对应 `~/.omp/profiles/<name>/agent/`，包含 OMP profile `config.yml`、profile 自有的 subagent prompts 和脱敏模型形状。`smart-cascade-*` 角色定义不在这里：它们由 Skill 的 `runners/omp/roles/` 单一持有，安装时投影进 profile，adapter 也用同一份做身份核对。选定 isolation 固定为：
-
-```yaml
-task:
-  batch: true
-  maxRecursionDepth: 2
-  isolation: {mode: auto, apply: false, merge: patch}
-```
-
-`sources/smart-cascade-omp/smoke/` 包含真实 OMP 主链路与中断恢复 smoke。
-
-### Autopilot
-
-`sources/hermes-skills/autopilot/` 是可选外部监督控制面，包含 Skill 文档、references，以及监督期使用的脚本：
-
-- `scripts/agent-watch.sh`：Herdr agent 守望器，`heartbeat` 睡一个周期后采集产出指纹并与上轮比对，`guard` 阻塞等待落定状态，`status` 出一次性快照，`selftest` 只验数据源可用性。session / 仓库 / agent 名全部走环境变量或 flag，没有硬编码。
-- `scripts/agent-dispatch.sh`：带送达证明的 prompt 派发。每次派发生成唯一 marker 随 packet 送出，再到 runner session transcript 里数它——0 次为确未送达可安全重发，1 次为已送达则不论 CLI 报什么错都不得重发，2 次以上为已双写。因为 `agent_prompt_stalled` 与 timeout 都可能发生在 prompt 已写入 session 之后，失败输出本身不能证明未送达。
-- `scripts/config.sh`：被上面两个脚本 source，让默认值统一来自 `autopilot-config.yaml`；配置缺失时回落到兜底值，环境变量优先级更高。
-
-这些脚本只服务于外部监督：它不包含 Smart Cascade runner 配置，不释放 slice、不调度 production children、不决定 acceptance、不拥有 Git。
-
-#### 启用 Autopilot 后运行方式会怎么变
-
-不启用时，Root 跑完一个 slice 的验收就走自己的 commit 对话，默认路径一路到底。启用 Autopilot 后，commit 边界变成一个真正会停下来的检查点：
-
-1. Root 完成 slice 验收、弹出 `commit` / `keep as candidate` 对话时进入 `blocked`，Herdr 把这个事件送出来。
-2. `agent-watch.sh guard` 正阻塞在 `herdr agent wait --until idle --until done --until blocked` 上，`blocked` 命中即退出并唤醒 Autopilot——不是轮询等到的，是事件驱动。
-3. Autopilot 先取消那个会自动选中的 commit 步骤，把边界按住，不让 30 秒倒计时替它做决定。
-4. 然后另起一个 pane 启动 verifier agent 独立跑一遍项目的高层验证入口；Root 自己也跑一遍。同一批 tier 有两份互不相干的读数。
-5. 两份读数一致且通过，边界才放行；不一致或有 tier 失败，评估结果作为 finding 交回 Root 走 `REWORK`，Root 决定处置。
-
-要点是 verifier 与 Root 的分工：verifier 的产出是 commit 边界的**证据**，不是 slice 判决。`PASS` / `REWORK` / `BLOCKED` 始终归 Root，Autopilot 既不自己跑项目验证命令，也不 commit。它做的是按住边界、组织交叉验证、把结论送回 Root。
-
-相关配置都在 [`autopilot-config.yaml`](sources/hermes-skills/autopilot/autopilot-config.yaml)：
-
-| 配置 | 作用 |
-|---|---|
-| `commit_boundary.answer` | `recommend` 走推荐值并在超时后自动选，`ask` 每次都停下来问人 |
-| `commit_boundary.auto_select_after_seconds` | 自动选之前留多少秒（默认 30） |
-| `verifier.enabled` | `false` 则跳过交叉检查，只剩 Root 自己那份读数 |
-| `verifier.launch_argv` / `model` / `effort` | verifier agent 以什么 profile、模型、思考强度启动 |
-| `observation.interval_minutes` | 周期性进度观察间隔，`0` 关闭；完成与 blocker 事件始终即时 |
-
-## 项目级状态
-
-项目只保存：
-
 ```text
-.smart-cascade/queue.toml
-.smart-cascade/override.yaml   # 可选，本地忽略
-.smart-cascade/control/        # 运行时 receipts/dispatches
-.smart-cascade/state/          # slice/child rework counters
+sources/smart-cascade-skill/   平台无关的 Skill core，runner 收在 runners/<name>/
+sources/smart-cascade-omp/     OMP profile 配置与原生 smoke
+sources/hermes-skills/autopilot/  可选外部监督 Skill
+design/                        实现权威：flow、决策记录、实现规格
+docs/deployment.md             安装、preflight、测试与验证
 ```
 
-Queue 是静态 DAG，不包含 runtime status。`override.yaml` 只保存实际 profile 的 `profile_name` 与 `profiles_root`。
+Skill 相对自身目录解析 core、角色和默认配置，可以检查任意外部项目——安装位置与被检查的项目完全解耦。
 
-`design/` 保存实现权威：
+## 文档
 
-- `smart-cascade-flow.md`
-- `decisions.md`
-- `smart-cascade-implementation-spec.md`
-
-历史材料保留在维护者本地的 `archive/`，不随仓库发布，也不参与当前实现。
-
-## 安装细节
-
-```bash
-./scripts/deploy.sh verify --runner omp --profile smart-cascade-omp
-./scripts/deploy.sh skill --runner omp
-./scripts/deploy.sh profile --runner omp --profile smart-cascade-omp
-./scripts/deploy.sh autopilot   # 可选
-```
-
-`--runner` 可重复，Skill 只安装选中的 `runners/<name>/`。省略时默认 `omp`：它是当前唯一可生产使用的 runner，同时保持现有安装命令兼容。`profile` 明确是 OMP 专属步骤；`--profile` 与 adapter 一样接受 profile 名或完整目录，默认 `smart-cascade-omp`，名称配合 profiles root 使用，完整目录直接选择其 parent/name。`verify` 对同一实际目标 profile 做 drift。部署边界、override 和 dry-run 见 [`docs/deployment.md`](docs/deployment.md)。
-
-## Core preflight
-
-从仓库源直接检查本项目：
-
-```bash
-SMART_CASCADE_PROJECT_ROOT="$PWD" \
-  bash sources/smart-cascade-skill/bootstrap/init-environment.sh
-```
-
-预期 `CORE_READY`。显式授权后才创建运行时目录：
-
-```bash
-SMART_CASCADE_PROJECT_ROOT="$PWD" \
-SMART_CASCADE_CREATE_STATE=1 \
-  bash sources/smart-cascade-skill/bootstrap/init-environment.sh
-```
-
-用户入口是显式调用已安装的 `smart-cascade` Skill。Skill 展示 queue、Git base、worktree snapshot 与 adapter receipt，要求一次明确确认，然后当前 OMP session 才成为 Root。
-
-## 确定性测试
-
-```bash
-python3 sources/smart-cascade-skill/runners/omp/test-adapter.py
-python3 sources/smart-cascade-skill/scripts/test-smart-cascade-contracts.py
-python3 sources/smart-cascade-skill/scripts/test-smart-cascade-dispatch.py
-python3 sources/smart-cascade-skill/scripts/test-smart-cascade-frontier.py
-python3 sources/smart-cascade-skill/scripts/test-smart-cascade-state.py
-```
-
-覆盖 profile admission/override、OMP transcript normalization、queue/core contracts、一次性 bootstrap/authorization、ready frontier 和独立 slice/child rework counters。
-
-## 原生 OMP smoke
-
-```bash
-bun run sources/smart-cascade-omp/smoke/run.ts
-bun run sources/smart-cascade-omp/smoke/recovery.ts
-```
-
-主 smoke 证明 Root → isolated Leader → isolated Executor、plain-prose Hub、strict settlement、retained patch、apply 前父目录不变、Leader serial assembly、Root verification、deliberate apply 与 cleanup。恢复 smoke 证明 parked child、原 identity 显式 revive、同一 session/isolation 延续和不可用时诚实 redispatch。Runner `completed` 本身不等于 Smart Cascade 完成。
+- [`docs/deployment.md`](docs/deployment.md)：三层安装边界、profile 选择、dry-run、确定性测试与原生 smoke。
+- [`design/smart-cascade-flow.md`](design/smart-cascade-flow.md)：队列契约、角色职责与验收语义。
+- [`design/decisions.md`](design/decisions.md)：关键设计决策及其理由。
 
 ## License
 
