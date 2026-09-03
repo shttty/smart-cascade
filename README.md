@@ -1,141 +1,79 @@
-# smart-cascade
+# Smart Cascade
 
-把一队编码任务交给一条级联的 AI agent：当前 session 作为 Root 读取静态队列，为每个 slice 派出一个隔离的 Leader，Leader 读完真实代码后再动态拆成若干隔离的 Executor 并行产出 patch。
+Smart Cascade 把一组有依赖关系的开发 tickets 交给多级 AI agent 并行实现。你最终拿到的是按依赖完成、经过验证并可逐个审查的 Git 改动。
 
-隔离是结构性的，不是靠提示词约定的：每个角色都是 OMP native 的独立 subagent，各自持有自己的 context 和工具面。Executor 写不到生产基线，只交出 patch；Leader 串行组装；Root 独立验证后才 commit。
+Smart Cascade 以 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) 生成的 tickets 作为输入。Smart Cascade Skill 会生成执行 Queue、安排当前可做的任务、并行实现、处理返工，并只集成通过验证的结果。
 
-```mermaid
-flowchart TD
-    QUEUE[".smart-cascade/queue.toml<br/>静态 slice 定义"] --> ROOT
 
-    subgraph ROOTLAYER["Root — 当前 session，唯一顶层协调者"]
-        ROOT["读取 queue<br/>按 depends_on<br/>计算 ready frontier"]
-    end
+- **自动生成执行计划**：从 tickets 生成 Queue，并按照依赖关系推进任务。
+- **并行实现**：互不依赖的任务同时执行，每份改动都留在隔离 worktree 中。
+- **验证后再集成**：执行 agent 不直接修改主工作区；每份 patch 经过组装和复验后才进入 Git。
+- **自动返工**：验证失败会带着具体问题返回原任务，不把半成品当作完成。
 
-    ROOT -->|"native task, isolated=true"| LEADER
+## 安装
 
-    subgraph LEADERLAYER["Leader — 隔离 candidate 的唯一 assembly writer"]
-        LEADER["读真实代码<br/>动态拆分 child patch"]
-    end
+### 1. 安装依赖
 
-    LEADER -->|"native task, isolated=true"| EX1 & EX2 & EX3
+需要：
 
-    subgraph EXLAYER["Executor — 并行产出 patch，写不到生产基线"]
-        EX1["child-a<br/>独立 patch"]
-        EX2["child-b<br/>独立 patch"]
-        EX3["child-n<br/>独立 patch"]
-    end
+- Python 3.11+
+- PyYAML
+- [OMP](https://github.com/can1357/oh-my-pi) 18.0+
 
-    EX1 & EX2 & EX3 -->|"strict settlement<br/>retained patch"| ASSEMBLE
+目前只提供 OMP runner；Codex 和 Claude Code runner 计划后续加入。
 
-    ASSEMBLE(["Leader 按确定顺序<br/>串行应用 patch"]) --> CANDIDATE
+先在 OMP 中配置好可用的 provider 和模型。仓库内的默认 profile 带有示例模型映射；安装前，把以下两处的 Root、Leader、Executor 和 Advisor 模型改成你实际可用的 `provider/model`，并保持对应项一致：
 
-    CANDIDATE(["候选 + 证据<br/>交回 Root"]) --> VERIFY
+- [`sources/smart-cascade-omp/agent/config.yml`](sources/smart-cascade-omp/agent/config.yml) 中的 `modelRoles`
+- [`sources/smart-cascade-skill/runners/omp/runner-launch.yaml`](sources/smart-cascade-skill/runners/omp/runner-launch.yaml) 中的 `root.model` 与 `roles.*.model`
 
-    subgraph VERIFYLAYER["Root 技术验收"]
-        VERIFY{"验证 settlement、retained patch<br/>changed paths、checks、postcondition"}
-    end
-
-    VERIFY -->|"PASS"| COMMIT["Git commit / integration<br/>推进依赖"]
-    VERIFY -->|"REWORK"| LEADER
-    VERIFY -->|"能力不足"| ADVISOR["请求 Advisor"]
-    ADVISOR --> LEADER
-
-    COMMIT --> NEXT{"还有 ready slice?"}
-    NEXT -->|"是"| ROOT
-    NEXT -->|"否"| DONE(["Root 报告结果<br/>由用户决定是否收货"])
-
-    classDef root fill:#2a1a1a,stroke:#f97316,color:#fed7aa
-    classDef leader fill:#1a2a3a,stroke:#38bdf8,color:#7dd3fc
-    classDef executor fill:#1a3a2a,stroke:#4ade80,color:#86efac
-    classDef advisor fill:#2a1a3a,stroke:#a78bfa,color:#c4b5fd
-    classDef terminal fill:#1e2130,stroke:#64748b,color:#94a3b8
-    classDef merge fill:#2a2a1a,stroke:#fbbf24,color:#fde68a
-
-    class ROOT,VERIFY,COMMIT root
-    class LEADER leader
-    class EX1,EX2,EX3 executor
-    class ADVISOR advisor
-    class QUEUE,DONE,NEXT terminal
-    class ASSEMBLE,CANDIDATE merge
-```
-
-## 为什么这样分层
-
-多 agent 并行改同一个仓库，通常坏在两个地方：谁都能写基线，于是冲突要靠运气；以及 agent 自己宣布完成，没人独立核对。
-
-这里两件事都交给结构，而不是交给提示词：
-
-- **Executor 拿不到生产基线的写权限。** 它在自己的 worktree 里干活，产出是 patch。写冲突不靠事先声明文件清单来预防，而是在 Leader 串行应用 patch 时暴露，转成 `REWORK`。
-- **判决权和执行权分开。** Executor 报告完成不算数，Leader 组装出的 candidate 也不算数——Root 独立验证 settlement、retained patch、实际变更路径和验收目标，才决定 `PASS` / `REWORK` / `BLOCKED`，也只有 Root 碰 Git。
-
-## 前置依赖
-
-| | 用途 |
-|---|---|
-| `python3` ≥ 3.11 + PyYAML | 必需，Skill core 与 adapter |
-| [OMP](https://github.com/can1357/oh-my-pi) | 必需，当前唯一可生产使用的 runner |
-| `bun` | 可选，仅原生 OMP smoke 需要 |
-
-OMP profile 必须支持 native task、Agent Hub 和 session resume。`./scripts/deploy.sh verify` 会逐项检查并告诉你缺什么。
-
-## Quick Start
+### 2. 安装 Smart Cascade
 
 ```bash
-./scripts/deploy.sh verify --runner omp --profile smart-cascade-omp
+git clone https://github.com/shttty/smart-cascade.git
+cd smart-cascade
+
 ./scripts/deploy.sh skill --runner omp
 ./scripts/deploy.sh profile --runner omp --profile smart-cascade-omp
+./scripts/deploy.sh verify --runner omp --profile smart-cascade-omp
 ```
 
-在你自己的项目里写一份队列，只描述顶层 slice：
+`verify` 输出 `RESULT: required dependencies satisfied` 即安装完成。
 
-```toml
-# <你的项目>/.smart-cascade/queue.toml
-[[slices]]
-id = "session-token-issuing"
-depends_on = []
-scope = "用户提交有效凭据后拿到一个可用于后续请求的签名 session token"
-checks = ["新 auth 模块的单测全部通过", "现有测试套件无回归"]
-```
+## 使用
 
-Queue 是静态 DAG，只表达用户目标和顶层边界，不含文件路径、child 列表或运行状态。`checks` 是**验收目标**而不是命令清单——写 queue 时你还不知道该跑什么命令，但知道做完之后什么必须成立；具体怎么验由实施者在完成后决定并回报。
+先用 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) 把需求整理成 tickets，并为项目建立一个干净的 Git checkpoint。
 
-队列也可以从 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) 的产物机械生成，它的切法和 **Blocked by** 依赖图正好对应 slice 与 `depends_on`（见 `bootstrap/to-queue.py --help`）。写完先校验：
+在项目目录启动 Smart Cascade profile：
 
 ```bash
-python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
+omp --profile smart-cascade-omp
 ```
 
-然后建立 Git checkpoint，在项目目录启动 OMP session，显式调用 `smart-cascade` Skill。Skill 会展示 queue、Git base、worktree snapshot 与 adapter receipt，要求一次明确确认——**你确认之后，当前 session 才原地成为 Root**。
-
-Smart Cascade 不会自动创建或修复 queue，不会启动另一个 session，也不会在你确认前开始任何调度。
-
-## 可选：Autopilot 外部监督
-
-Smart Cascade 自己跑得完整条链路。Root 在 commit 边界会停下来等确认，超时后自行 check 并 commit，流程不会卡住等人。
-
-[Autopilot](sources/hermes-skills/autopilot/) 是可选的外部监督层，改变的只有这个边界：它按住那个会自动放行的 commit 步骤，另起一个 agent 独立跑一遍项目的高层验证入口，和 Root 自己那份读数交叉比对，两份一致才放行。verifier 产出的是**证据**，判决权仍在 Root——Autopilot 不跑项目验收命令，也不 commit。
-
-它依赖已安装的 `herdr` skill 来启动和控制 Root。不需要外部监督时，整层可以不装。
-
-## 仓库结构
+然后调用：
 
 ```text
-sources/smart-cascade-skill/   平台无关的 Skill core，runner 收在 runners/<name>/
-sources/smart-cascade-omp/     OMP profile 配置与原生 smoke
-sources/hermes-skills/autopilot/  可选外部监督 Skill
-design/                        实现权威：flow、决策记录、实现规格
-docs/deployment.md             安装、preflight、测试与验证
+/skill:smart-cascade <tickets 目录>
 ```
 
-Skill 相对自身目录解析 core、角色和默认配置，可以检查任意外部项目——安装位置与被检查的项目完全解耦。
+Smart Cascade Skill 会从 tickets 生成内部 Queue，检查 Git 基线和运行环境，并在开始调度前向你确认一次。确认后，当前 OMP session 会直接成为 Root；不需要另开一个主 session。
 
-## 文档
+运行期间，Root 会按依赖关系派发任务，Leader 会根据实际代码动态拆分工作，Executor 在隔离 worktree 中并行实现。每个结果都必须携带可验证的 patch 和执行证据；失败的任务进入 `REWORK`，通过的结果才会进入最终集成。
 
-- [`docs/deployment.md`](docs/deployment.md)：三层安装边界、profile 选择、dry-run、确定性测试与原生 smoke。
-- [`design/smart-cascade-flow.md`](design/smart-cascade-flow.md)：队列契约、角色职责与验收语义。
-- [`design/decisions.md`](design/decisions.md)：关键设计决策及其理由。
+## 可选：Autopilot
+
+Smart Cascade 可以独立完成整个运行。Root 在最终 commit 前会停下来等待确认，超时后按默认选项继续。
+
+Autopilot 是运行在另一个 agent 中的外部监督者，通过 Herdr 介入并监控 OMP runner。它不限定宿主 agent；任何受 `npx skills` 支持的 agent 都可以安装。Herdr skill 由 Herdr 自身提供，无需从本仓库安装。
+
+```bash
+npx skills add shttty/smart-cascade --skill autopilot
+```
+
+安装时可按 `npx skills` 的提示选择目标 agent。
+
+Autopilot 会在 commit 边界按住自动放行，启动独立 verifier 与 Root 的验证结果交叉检查；结果一致才放行，不一致则把 finding 交回 Root 处理。不需要这层监督时无需安装。
 
 ## License
 
-MIT，见 [LICENSE](LICENSE)。
+[MIT](LICENSE)

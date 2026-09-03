@@ -1,4 +1,0 @@
-# Unconfigured runners use their native defaults.
-runners:
-  claude:
-    permission_mode: auto

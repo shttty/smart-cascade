@@ -6,13 +6,13 @@
 
 Smart Cascade 是一个运行工作流，入口是当前 Agent session 中的 `smart-cascade` Skill。
 
-任务规划、需求拆分、ticket 编制属于前置工作，由 `to-ticket`、重构规划或其他规划 Skill 完成。Smart Cascade 不抢任务规划，也不负责创建或改写任务队列。
-
-Smart Cascade 只消费一份已经存在的、符合规范的静态队列：
+任务规划、需求拆分和 ticket 编制属于前置工作，由 `to-tickets` 或其他规划 Skill 完成。Smart Cascade 不重新规划任务；它只把用户明确提供的 `to-tickets` 产物机械转换成符合规范的静态队列：
 
 ```text
 .smart-cascade/queue.toml
 ```
+
+转换过程不得猜测、补写或改写 ticket 的 scope、验收目标和依赖。
 
 ## 2. 外部承载是可选项
 
@@ -78,9 +78,11 @@ Smart Cascade 启动前只要求：
 6. 父级能读取并验证 native task 返回的 authoritative retained patch，再串行应用；
 7. 用户明确确认开始。
 
-queue 的生成不属于 Smart Cascade。符合 Smart Cascade 要求的 queue 应由独立的 Queue 编制 Skill 生成或审查。它可以接收 `to-ticket`、重构计划和其他任务拆分产物。
+queue 由 Smart Cascade Skill 根据用户明确传入的 `to-tickets` 产物机械生成。Skill 先调用 `bootstrap/to-queue.py` 生成并验证静态 queue；它不重新拆解需求，也不猜测缺失的 scope、验收目标或依赖。若目标 queue 已存在且与生成结果不同，必须先让用户决定是否替换；不能静默覆盖。
 
-Smart Cascade 对已有 queue 做的是拒绝无效输入，而不是重新设计任务：
+生成 queue 只准备运行输入，不授权生产调度。Skill 随后展示生成结果、Git 基线与运行环境，并要求用户明确确认开始。
+
+Smart Cascade 对生成后的 queue 做拒绝无效输入，而不是重新设计任务：
 
 ```bash
 python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
@@ -507,16 +509,12 @@ Root 自身失联时，Autopilot 负责外部恢复和重新接入；Autopilot �
 ## 14. 最终拓扑
 
 ```text
-任务规划 Skill / to-ticket / 重构计划
-  → 前置任务语义
-
-Queue 编制 Skill
-  → .smart-cascade/queue.toml
+任务规划 Skill / to-tickets
+  → 前置 tickets
 
 用户当前 Agent session
   → smart-cascade Skill
-      → 检查 queue
-      → 机械验证
+      → 机械生成并检查 queue
       → 展示边界
       → 询问用户是否开始
       → 当前 session 成为 Root

@@ -10,7 +10,7 @@ Smart Cascade has an accepted production model, role definitions, bootstrap/cont
 
 The current control plane still contains the retired staged-dispatch path. The active workflow is spread across design documents, Autopilot references, Root initialization material, OMP role prompts, queue validation, and smoke code. An implementation agent can therefore mistake historical Pi-plugin or borrowed-cwd investigations for required production work, duplicate native OMP lifecycle behavior, or stop after wiring only one layer.
 
-The user needs a Smart Cascade Skill that consumes an approved static queue, asks before beginning, turns the current OMP session into Root, uses native isolated OMP subagents for Leader and Executor work, validates retained patches and settlements, advances the dependency frontier, preserves only minimal rework counters, and resumes interrupted child sessions without inventing another runtime or lifecycle state machine.
+The user needs a Smart Cascade Skill that mechanically generates an approved static queue from explicit `to-tickets` output, asks before beginning, turns the current OMP session into Root, uses native isolated OMP subagents for Leader and Executor work, validates retained patches and settlements, advances the dependency frontier, preserves only minimal rework counters, and resumes interrupted child sessions without inventing another runtime or lifecycle state machine.
 
 ## Solution
 
@@ -27,7 +27,7 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 ## User Stories
 
 1. As a Smart Cascade user, I want to invoke the workflow from my current Agent session, so that I do not have to create or discover another Root session.
-2. As a Smart Cascade user, I want the workflow to require an existing approved static queue, so that implementation does not silently redesign my task decomposition.
+2. As a Smart Cascade user, I want the Skill to mechanically generate the static queue from the exact `to-tickets` output I provide, so that I do not have to translate tickets by hand and implementation does not silently redesign my task decomposition.
 3. As a Smart Cascade user, I want queue validation to fail closed before production work, so that malformed or over-broad slices do not enter the run.
 4. As a Smart Cascade user, I want to see the queue, Git baseline, execution profile, and production boundary before work starts, so that authorization is explicit and informed.
 5. As a Smart Cascade user, I want the workflow to ask for confirmation before starting production dispatch, so that invoking the Skill is not itself authorization to mutate the repository.

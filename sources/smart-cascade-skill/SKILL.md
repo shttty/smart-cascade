@@ -1,12 +1,19 @@
 ---
 name: smart-cascade
-description: Run an approved Smart Cascade queue from the current session through a selected runner adapter.
+description: Generate an approved Smart Cascade queue from to-tickets output, then run it from the current session through a selected runner adapter.
 disable-model-invocation: true
 ---
 
 # Smart Cascade
 
 Use only on explicit user invocation. Install the platform-neutral core with one or more selected `runners/<name>/` directories; unselected runners are intentionally absent. The installer defaults to `omp`, the only current production runner, to preserve existing installs. Its OMP profile selector accepts the same name-or-full-directory forms as adapter `--profile`, defaults to `smart-cascade-omp`, and installs/drift-checks that exact target. Under the OMP runner, the current OMP session becomes the prospective Root only after the user gives an explicit yes at the run-level confirmation boundary. Each runner directory contains its adapter, normalization, launch configuration, and runner-format subagent definitions; adding another runner must not change the core.
+
+## Queue preparation
+
+1. Require the invocation argument to name exactly one `to-tickets` issues directory. Resolve a relative path from the current project root. Do not discover, infer, or silently select a different ticket set.
+2. Run `python3 bootstrap/to-queue.py <issues-directory> -o <temporary-queue>` and then `python3 bootstrap/validate-queue.py <temporary-queue>`. Any parse, dependency, cycle, or validation failure stops before production work.
+3. Target `<project>/.smart-cascade/queue.toml`. If it does not exist, install the generated queue. If it is byte-identical, reuse it. If it differs, show the diff and ask whether to replace it; never overwrite an existing queue without an explicit yes.
+4. Queue generation prepares the run input only. It does not authorize dispatch. Present the generated queue in the run-level confirmation below.
 
 ## Preflight
 

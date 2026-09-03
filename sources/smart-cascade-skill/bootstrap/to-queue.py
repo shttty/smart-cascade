@@ -317,8 +317,8 @@ def main() -> int:
             for message in ticket.errors:
                 print(f"error: {ticket.path.name}: {message}", file=sys.stderr)
         print(
-            "\nNothing was written. Fix the tickets, or write the queue by hand;\n"
-            "this converter never guesses at a missing scope or dependency.",
+            "\nNothing was written. Fix the tickets; this converter never\n"
+            "guesses at a missing scope or dependency.",
             file=sys.stderr,
         )
         return 1

@@ -4,10 +4,6 @@ description: "Use when supervising a Smart Cascade run: bootstrap and verify Roo
 version: 0.6.0
 author: Iris Rinne
 platforms: [linux, macos]
-metadata:
-  hermes:
-    tags: [autopilot, supervision, dag, herdr]
-    related_skills: [herdr, external-agent-terminal-multiplexer-operations]
 ---
 
 # Autopilot

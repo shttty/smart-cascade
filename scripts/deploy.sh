@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
-# Install Smart Cascade core with selected runners, the OMP profile, and optional Autopilot.
+# Install Smart Cascade core with selected runners and the OMP profile.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL_SOURCE="$REPO_ROOT/sources/smart-cascade-skill"
 OMP_PROFILE_SOURCE="$REPO_ROOT/sources/smart-cascade-omp/agent"
-AUTOPILOT_SOURCE="$REPO_ROOT/sources/hermes-skills/autopilot"
 OMP_RUNNER_SOURCE="$SKILL_SOURCE/runners/omp"
 OMP_SKILLS_ROOT="${SMART_CASCADE_SKILLS_ROOT:-$HOME/.omp/skills}"
 PROFILES_ROOT="${SMART_CASCADE_PROFILES_ROOT:-$HOME/.omp/profiles}"
-HERMES_SKILLS_ROOT="${SMART_CASCADE_HERMES_SKILLS_ROOT:-$HOME/.hermes/skills}"
 PROFILE_SELECTION="smart-cascade-omp"
 PROFILE_NAME=""
-AUTOPILOT_RELATIVE="autonomous-ai-agents/autopilot"
 DRY_RUN=0
 RUNNERS=()
 
@@ -36,8 +33,7 @@ commands:
   verify       check common dependencies and selected-runner installation drift
   skill        install/update the Skill core and selected runner directories
   profile      install/update the selected OMP profile's roles and config.yml
-  autopilot    install/update the optional Hermes Autopilot supervision skill
-  all          install skill, the selected OMP profile when omp is selected, then autopilot
+  all          install skill and the selected OMP profile when omp is selected
 
 options:
   --runner NAME          select a Skill runner; repeat to install several
@@ -50,7 +46,6 @@ options:
 environment:
   SMART_CASCADE_SKILLS_ROOT         OMP skills root (default ~/.omp/skills)
   SMART_CASCADE_PROFILES_ROOT       OMP profiles root (default ~/.omp/profiles)
-  SMART_CASCADE_HERMES_SKILLS_ROOT  Hermes skills root (default ~/.hermes/skills)
   SMART_CASCADE_OMP_BIN             explicit OMP executable for verify
 USAGE
 }
@@ -116,34 +111,6 @@ install_skill() {
     tar -C "$SKILL_SOURCE/runners" --exclude='__pycache__' --exclude='*.pyc' -cf - "$runner" \
       | tar -C "$destination/runners" -xf -
   done
-}
-
-copy_tree() {
-  local source=$1 destination=$2 label=$3
-  [[ -d $source ]] || fail "$label source missing: $source"
-  info "installing $label"
-  info "  from $source"
-  info "  to   $destination"
-  run mkdir -p "$(dirname "$destination")"
-  run rm -rf "$destination"
-  # tar rather than cp -a so build artifacts stay out of the installed tree
-  if [[ $DRY_RUN == 1 ]]; then
-    printf '  [dry-run] copy tree excluding __pycache__ and *.pyc\n'
-  else
-    mkdir -p "$destination"
-    tar -C "$source" --exclude='__pycache__' --exclude='*.pyc' -cf - . | tar -C "$destination" -xf -
-  fi
-}
-
-report_tree_drift() {
-  local source=$1 destination=$2 label=$3
-  if [[ ! -d $destination ]]; then
-    info "  $label  not installed"
-  elif diff -qr --exclude='__pycache__' --exclude='*.pyc' "$source" "$destination" >/dev/null; then
-    info "  $label  in sync"
-  else
-    info "  $label  differs"
-  fi
 }
 
 report_skill_drift() {
@@ -254,7 +221,6 @@ cmd_verify() {
   info "=== installation drift ==="
   report_skill_drift
   runner_selected omp && report_profile_drift
-  report_tree_drift "$AUTOPILOT_SOURCE" "$HERMES_SKILLS_ROOT/$AUTOPILOT_RELATIVE" "autopilot"
 
   [[ $failed == 0 ]] || return 1
   info ""
@@ -291,10 +257,6 @@ cmd_omp_profile() {
   info "  runtime state untouched: models.yml, *.db, sessions/, terminal-sessions/, extensions/, logs/"
 }
 
-cmd_autopilot() {
-  copy_tree "$AUTOPILOT_SOURCE" "$HERMES_SKILLS_ROOT/$AUTOPILOT_RELATIVE" "Autopilot supervision skill"
-}
-
 command=${1:-}
 [[ $# -gt 0 ]] && shift || true
 while [[ $# -gt 0 ]]; do
@@ -319,12 +281,9 @@ case $command in
   verify) cmd_verify ;;
   skill) cmd_skill ;;
   profile) cmd_omp_profile ;;
-  autopilot) cmd_autopilot ;;
   all)
     cmd_skill
     if runner_selected omp; then info ""; cmd_omp_profile; else info ""; info "skipping OMP profile: omp runner not selected"; fi
-    info ""
-    cmd_autopilot
     ;;
   ""|-h|--help) usage ;;
   *) fail "unknown command: $command (see --help)" ;;

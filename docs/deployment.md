@@ -1,11 +1,11 @@
 # 部署
 
-Smart Cascade 分成三个独立安装层：
+Smart Cascade 分成两个安装层，另有可选的 Autopilot skill：
 
 ```text
 ~/.omp/skills/smart-cascade/                    Skill core 与选中的 runners/<name>/
 ~/.omp/profiles/<name>/agent/                  OMP runner 专属 profile 配置与 subagent 定义
-~/.hermes/skills/autonomous-ai-agents/autopilot/  可选外部监督 Skill（文档 + 监督脚本）
+<agent skill directory>/autopilot/             可选外部监督 Skill
 <project>/.smart-cascade/                      queue、override 和运行状态
 ```
 
@@ -17,14 +17,12 @@ Smart Cascade 分成三个独立安装层：
 ./scripts/deploy.sh verify --runner omp --profile smart-cascade-omp
 ./scripts/deploy.sh skill --runner omp --dry-run
 ./scripts/deploy.sh profile --runner omp --profile smart-cascade-omp --dry-run
-./scripts/deploy.sh autopilot --dry-run
 
 ./scripts/deploy.sh skill --runner omp
 ./scripts/deploy.sh profile --runner omp --profile smart-cascade-omp
-./scripts/deploy.sh autopilot   # 仅需要外部监督时
 ```
 
-`--runner NAME` 可重复；Skill core 始终安装，只复制选中的 `runners/<name>/`。省略 `--runner` 时默认 `omp`，因为它是当前唯一生产 runner，并保持旧命令兼容。`--profile NAME|PATH` 与 adapter 的 profile override 语义一致：名称安装到 profiles root 下，完整目录直接决定 root 与 name；默认 `smart-cascade-omp`。`all` 安装 Skill、选中 `omp` 时安装实际选中的 OMP profile，再安装 Autopilot。`--dry-run` 只打印计划；`--profiles-root DIR` 对 profile 名仍有效，完整 profile 路径优先。
+`--runner NAME` 可重复；Skill core 始终安装，只复制选中的 `runners/<name>/`。省略 `--runner` 时默认 `omp`，因为它是当前唯一生产 runner，并保持旧命令兼容。`--profile NAME|PATH` 与 adapter 的 profile override 语义一致：名称安装到 profiles root 下，完整目录直接决定 root 与 name；默认 `smart-cascade-omp`。`all` 安装 Skill，并在选中 `omp` 时安装实际选中的 OMP profile。`--dry-run` 只打印计划；`--profiles-root DIR` 对 profile 名仍有效，完整 profile 路径优先。
 
 ## 依赖
 
@@ -72,10 +70,10 @@ models.yml  *.db  sessions/  terminal-sessions/  extensions/  logs/
 ## Autopilot
 
 ```bash
-./scripts/deploy.sh autopilot
+npx skills add shttty/smart-cascade --skill autopilot
 ```
 
-安装可选的 Hermes 外部监督 Skill。Autopilot 包含 `SKILL.md`、references 与 `scripts/`（`agent-watch.sh` 守望、`agent-dispatch.sh` 带送达证明的派发、`config.sh` 共享配置读取），通过已安装的 `herdr` skill 完成 Root 启动、初始化、控制和观察；它不拥有生产调度或 Git。
+Autopilot 位于 `sources/autopilot-skill/`，通过 `npx skills` 安装到用户选择的兼容 agent。它包含 `SKILL.md`、references 与 `scripts/`（`agent-watch.sh` 守望、`agent-dispatch.sh` 带送达证明的派发、`config.sh` 共享配置读取），通过 Herdr 自带的官方 skill 完成 Root 启动、初始化、控制和观察；它不拥有生产调度或 Git。
 
 ### commit 边界的双重验收
 
