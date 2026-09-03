@@ -8,7 +8,7 @@ Verify project, logical slice/child IDs, dependencies, `attempt_id`, parent atte
 
 ## 2. Scope
 
-Verify every changed path and postcondition remains inside the approved queue `write_set` and any narrower child packet.
+Verify every changed path and postcondition conforms to the slice's approved scope and any narrower child packet boundary.
 
 ## 3. Candidate freeze
 

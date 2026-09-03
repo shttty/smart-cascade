@@ -21,7 +21,6 @@ SLICE_KEYS = {
     "id",
     "depends_on",
     "scope",
-    "write_set",
     "checks",
 }
 ROOT_KEYS = {"slices"}
@@ -39,6 +38,7 @@ FORBIDDEN_KEYS = {
     "execution_mode",
     "git_authority",
     "root_coordinator",
+    "write_set",
 }
 ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 
@@ -123,7 +123,7 @@ def validate_queue(document: Any, source: str) -> tuple[list[dict[str, str]], li
     if not isinstance(document, dict):
         return [error("$", "queue must be a TOML table")], notices
 
-    unknown_root = set(document) - ROOT_KEYS
+    unknown_root = set(document) - ROOT_KEYS - FORBIDDEN_KEYS
     for key in sorted(unknown_root):
         errors.append(error(key, "unknown top-level field"))
     forbidden_root = sorted(set(document) & FORBIDDEN_KEYS)
@@ -137,7 +137,6 @@ def validate_queue(document: Any, source: str) -> tuple[list[dict[str, str]], li
 
     ids: set[str] = set()
     dependencies: dict[str, set[str]] = {}
-    write_sets: dict[str, list[str]] = {}
 
     for index, item in enumerate(slices):
         prefix = f"slices[{index}]"
@@ -145,7 +144,7 @@ def validate_queue(document: Any, source: str) -> tuple[list[dict[str, str]], li
             errors.append(error(prefix, "must be a TOML table"))
             continue
 
-        unknown = set(item) - SLICE_KEYS
+        unknown = set(item) - SLICE_KEYS - FORBIDDEN_KEYS
         for key in sorted(unknown):
             errors.append(error(f"{prefix}.{key}", "unknown slice field"))
         forbidden = sorted(set(item) & FORBIDDEN_KEYS)
@@ -172,21 +171,6 @@ def validate_queue(document: Any, source: str) -> tuple[list[dict[str, str]], li
         if not isinstance(scope, str) or not scope.strip():
             errors.append(error(f"{prefix}.scope", "must be a non-empty string"))
 
-        raw_write_set = item.get("write_set")
-        if not is_string_list(raw_write_set) or not raw_write_set:
-            errors.append(error(f"{prefix}.write_set", "must be a non-empty array of strings"))
-            raw_write_set = []
-        normalized: list[str] = []
-        for path_index, raw_path in enumerate(raw_write_set):
-            normalized_path = normalize_repo_path(raw_path, f"{prefix}.write_set[{path_index}]")
-            if normalized_path is None:
-                errors.append(error(f"{prefix}.write_set[{path_index}]", "must be a normalized repo-relative path or final /** prefix"))
-            elif normalized_path in normalized:
-                errors.append(error(f"{prefix}.write_set[{path_index}]", "duplicate normalized path"))
-            else:
-                normalized.append(normalized_path)
-        write_sets[slice_id] = normalized
-
         checks = item.get("checks")
         if not is_string_list(checks) or not checks or any(not check.strip() for check in checks):
             errors.append(error(f"{prefix}.checks", "must be a non-empty array of non-empty strings"))
@@ -205,26 +189,6 @@ def validate_queue(document: Any, source: str) -> tuple[list[dict[str, str]], li
             continue
         if reaches(dependencies, slice_id, slice_id):
             errors.append(error(f"slices[{slice_id}].depends_on", "dependency cycle detected"))
-
-    valid_ids = sorted(write_sets)
-    for position, left_id in enumerate(valid_ids):
-        for right_id in valid_ids[position + 1 :]:
-            if reaches(dependencies, left_id, right_id) or reaches(dependencies, right_id, left_id):
-                continue
-            overlaps = sorted(
-                f"{left_path} ↔ {right_path}"
-                for left_path in write_sets[left_id]
-                for right_path in write_sets[right_id]
-                if path_matches(left_path, right_path)
-            )
-            if overlaps:
-                notices.append(
-                    {
-                        "kind": "serialization_required",
-                        "slices": f"{left_id}, {right_id}",
-                        "overlaps": "; ".join(overlaps),
-                    }
-                )
 
     return errors, notices
 

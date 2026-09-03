@@ -31,17 +31,12 @@ def validator_module(script: Path) -> Any:
     return module
 
 
-def overlaps(left: list[str], right: list[str], path_matches: Any) -> bool:
-    return any(path_matches(a, b) for a in left for b in right)
-
-
 def maximum_frontier(
     slices: list[dict[str, Any]],
     integrated: set[str],
     active: set[str],
     blocked: set[str],
     shared_resources: dict[str, set[str]],
-    path_matches: Any,
 ) -> dict[str, Any]:
     by_id = {item["id"]: item for item in slices}
     known = set(by_id)
@@ -59,7 +54,7 @@ def maximum_frontier(
         return bool(shared_resources.get(left, set()) & shared_resources.get(right, set()))
 
     def conflicts(left: str, right: str) -> bool:
-        return overlaps(by_id[left]["write_set"], by_id[right]["write_set"], path_matches) or resource_overlap(left, right)
+        return resource_overlap(left, right)
 
     dependency_ready = [
         item["id"]
@@ -114,13 +109,7 @@ def maximum_frontier(
                 conflicting_active = sorted(active_id for active_id in active if conflicts(slice_id, active_id))
                 conflicting_selected = sorted(chosen for chosen in selected if conflicts(slice_id, chosen))
                 conflicts_with = conflicting_active or conflicting_selected
-                shared_conflicts = [
-                    other
-                    for other in conflicts_with
-                    if resource_overlap(slice_id, other)
-                ]
-                kind = "shared_resource_overlap" if shared_conflicts else "write_set_overlap"
-                reasons[slice_id] = f"{kind}:{','.join(conflicts_with)}"
+                reasons[slice_id] = f"shared_resource_overlap:{','.join(conflicts_with)}"
 
     return {
         "status": "FRONTIER_READY",
@@ -162,7 +151,7 @@ def main() -> int:
             fail("--shared-resource must be SLICE_ID=RESOURCE")
         resources.setdefault(slice_id, set()).add(resource)
     result = maximum_frontier(
-        document["slices"], set(args.integrated), set(args.active), set(args.blocked), resources, validator.path_matches
+        document["slices"], set(args.integrated), set(args.active), set(args.blocked), resources
     )
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0

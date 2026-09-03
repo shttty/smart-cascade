@@ -95,7 +95,6 @@ python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/q
 id = "stable-slice-id"
 depends_on = []
 scope = "一个有明确完成条件的顶层目标"
-write_set = ["src/**"]
 checks = ["具体、可运行的检查命令"]
 
 ```
@@ -119,7 +118,7 @@ Queue 不包含：
 用户确认后，当前 session 作为 Root。Root 是唯一的顶层生产协调者，也是运行内的技术验收 authority，负责：
 
 - 读取完整 queue；
-- 根据依赖和写集计算可执行 slice；
+- 根据依赖和已声明的共享可变资源计算可执行 slice；
 - 启动每个 slice 的 Leader；
 - 验证 Leader 返回的 candidate、patch、changed paths、postcondition 和 checks；
 - 冻结候选；

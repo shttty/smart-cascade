@@ -8,14 +8,14 @@ Autopilot supervisor → Root → Leader → Executor
 
 - Root owns complete-DAG scheduling, large-slice attempt lifecycle, slice decisions, commits/integration, dependency advancement, and cleanup.
 - Leader owns one slice's execution strategy, child attempt lifecycle, child settlement, and bounded assembly.
-- Executors perform bounded implementation in an exact assigned cwd/write set.
+- Executors perform bounded implementation within their assigned worktree and task scope.
 - Autopilot observes and intervenes on external control or boundary failures; it does not accept slices or perform production Git actions.
 
 ## Scheduling
 
 Root and Leader dispatch the maximum safe frontier after every dependency milestone change. `working` agent state is not a global scheduling lock.
 
-Dispatch requires satisfied dependencies, disjoint normalized write sets, disjoint shared mutable outputs, and safe independent writer cwd/worktree semantics. Record any serialization reason.
+Dispatch requires satisfied dependencies and an isolated worktree for each active writer. Serialize only for declared shared mutable resource overlap or dependencies not yet integrated, and record the reason.
 
 ## Logical identity and attempts
 
@@ -36,7 +36,7 @@ child_id
 parent_slice_id
 attempt_id and parent candidate/base
 isolated=true and profile patch-retention policy
-allowed paths / normalized write set
+assigned worktree / task scope
 inputs and non-goals
 execution role
 postconditions / deterministic postimage
@@ -61,6 +61,6 @@ Use Mechanical Executor only for a decided deterministic postimage. Use semantic
 
 ## Blockers
 
-A blocker freezes only its affected chain. Continue independent ready work. Architecture, product, queue-boundary, write-set, or external authorization changes escalate to Root and then Autopilot/user when outside the run boundary.
+A blocker freezes only its affected chain. Continue independent ready work. Architecture, product, queue-boundary, task-scope, shared-resource, or external authorization changes escalate to Root and then Autopilot/user when outside the run boundary.
 
 No role creates a fresh logical identity merely to make progress look healthy.

@@ -270,7 +270,7 @@ async function main(): Promise<void> {
 			mkdirSync(join(repo, "smoke"), { recursive: true });
 			await writeFile(join(repo, FIXTURE), BEFORE);
 			mkdirSync(join(repo, ".smart-cascade"), { recursive: true });
-			await writeFile(join(repo, ".smart-cascade", "queue.toml"), `[[slices]]\nid = "smoke-slice"\ndepends_on = []\nscope = "mutate only ${FIXTURE}"\nwrite_set = ["smoke/**"]\nchecks = ["read fixture bytes"]\n`);
+			await writeFile(join(repo, ".smart-cascade", "queue.toml"), `[[slices]]\nid = "smoke-slice"\ndepends_on = []\nscope = "mutate only ${FIXTURE}"\nchecks = ["read fixture bytes"]\n`);
 			await copyFile(join(SKILL_ROOT, "bootstrap", "contracts.py"), join(repo, "contracts.py"));
 			await copyFile(join(SKILL_ROOT, "bootstrap", "validate-queue.py"), join(repo, "validate-queue.py"));
 			await shell(repo, "git", "config", "user.email", "smart-cascade-smoke@example.invalid");
@@ -303,8 +303,8 @@ async function main(): Promise<void> {
 		});
 		const leaderSchema = { type: "object", properties: { status: { const: "READY_FOR_ROOT_REVIEW" }, slice_id: { const: "smoke-slice" }, attempt_id: { const: "leader-attempt-1" }, execution_path: { const: "delegated" }, children: { const: ["smoke-child"] }, candidate_evidence: { type: "object", properties: { base: { const: base }, changed_paths: { const: [FIXTURE] }, checks: { const: ["fixture bytes passed"] }, evidence: { type: "string" } }, required: ["base", "changed_paths", "checks", "evidence"], additionalProperties: false }, preserved_attempts: { const: [] } }, required: ["status", "slice_id", "attempt_id", "execution_path", "children", "candidate_evidence", "preserved_attempts"], additionalProperties: false };
 		const executorSchema = { type: "object", properties: { status: { const: "DONE" }, child_id: { const: "smoke-child" }, slice_id: { const: "smoke-slice" }, attempt_id: { const: "child-attempt-1" }, changed_paths: { const: [FIXTURE] }, checks: { const: ["fixture bytes passed"] }, evidence: { type: "string" } }, required: ["status", "child_id", "slice_id", "attempt_id", "changed_paths", "checks", "evidence"], additionalProperties: false };
-		const leaderPacket = { role: "leader", task_name: "smoke-leader-id", slice_id: "smoke-slice", attempt_id: "leader-attempt-1", base, scope: `mutate only ${FIXTURE}`, write_set: ["smoke/**"], dependencies: [], checks: ["read fixture bytes"], non_goals: ["no Root mutation", "no commit"], result_schema: leaderSchema };
-		const executorPacket = { role: "executor", task_name: "smoke-executor-id", slice_id: "smoke-slice", child_id: "smoke-child", attempt_id: "child-attempt-1", base, write_set: ["smoke/**"], checks: ["read fixture bytes"], non_goals: ["no parent mutation", "no commit"], postcondition: `${FIXTURE} has exact Executor bytes`, result_schema: executorSchema };
+		const leaderPacket = { role: "leader", task_name: "smoke-leader-id", slice_id: "smoke-slice", attempt_id: "leader-attempt-1", base, scope: `mutate only ${FIXTURE}`, dependencies: [], checks: ["read fixture bytes"], non_goals: ["no Root mutation", "no commit"], result_schema: leaderSchema };
+		const executorPacket = { role: "executor", task_name: "smoke-executor-id", slice_id: "smoke-slice", child_id: "smoke-child", attempt_id: "child-attempt-1", base, checks: ["read fixture bytes"], non_goals: ["no parent mutation", "no commit"], postcondition: `${FIXTURE} has exact Executor bytes`, result_schema: executorSchema };
 		client = await phase(phases, "rpc", async () => {
 			const rpc = new RpcClient({ cliPath: OMP_CLI, cwd: repo, model: parsed.model, env: { HOME: home, OMP_PROFILE: profile, PI_PROFILE: profile, OMP_WORKTREE_DIR: isolationBase! }, args: ["--profile", profile, "--config", config, "--no-extensions", "--no-skills", "--no-rules", "--no-lsp", "--approval-mode", "yolo"] });
 			rpc.onSubagentLifecycle(payload => observations.lifecycle.push(payload));

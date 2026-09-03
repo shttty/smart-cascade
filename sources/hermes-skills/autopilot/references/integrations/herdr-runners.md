@@ -58,7 +58,7 @@ External Herdr Leader panes are a transport fallback only, not the OMP productio
 
 - Root owns logical attempts, candidate validity, accepted patch application, commit/integration disposition, and DAG advancement.
 - Leader owns child validation and bounded serial assembly in its own isolated candidate.
-- Executors use supplied write sets and do not own lifecycle, patch application, commit, merge, or cleanup.
+- Executors work only within their supplied isolated worktree and task scope; they do not own lifecycle, patch application, commit, merge, or cleanup.
 - OMP owns temporary isolation directories, patch capture, and cleanup after settlement. `apply=false` prevents automatic parent mutation and `merge=patch` retains the artifact.
 - Hub carries plain-prose parent/child communication and completion context, with explicit slice, attempt, and nonce labels when needed; strict structured output belongs to task completion.
 

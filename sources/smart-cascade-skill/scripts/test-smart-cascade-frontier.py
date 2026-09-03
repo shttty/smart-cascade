@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused tests for maximum-safe Smart Cascade frontier selection."""
+"""Deterministic checks for the Smart Cascade queue frontier."""
 
 from __future__ import annotations
 
@@ -9,42 +9,37 @@ import sys
 import tempfile
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parent.parent / "bootstrap/frontier.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "bootstrap" / "frontier.py"
 
 QUEUE = """
 [[slices]]
 id = "foundation"
 depends_on = []
 scope = "foundation"
-write_set = ["src/foundation/**"]
 checks = ["true"]
 
 [[slices]]
 id = "independent"
 depends_on = []
 scope = "independent"
-write_set = ["src/independent/**"]
 checks = ["true"]
 
 [[slices]]
 id = "overlap-a"
 depends_on = []
 scope = "overlap a"
-write_set = ["src/shared/**"]
 checks = ["true"]
 
 [[slices]]
 id = "overlap-b"
 depends_on = []
 scope = "overlap b"
-write_set = ["src/shared/file.ts"]
 checks = ["true"]
 
 [[slices]]
 id = "dependent"
 depends_on = ["foundation"]
 scope = "dependent"
-write_set = ["src/dependent/**"]
 checks = ["true"]
 """
 
@@ -65,19 +60,23 @@ def main() -> int:
         queue = Path(raw) / "queue.toml"
         queue.write_text(QUEUE, encoding="utf-8")
 
+        # Without declared shared resources every dependency-ready slice runs in
+        # parallel; worktree isolation, not a static path declaration, is what
+        # keeps concurrent slices from colliding.
         initial = run(queue)
         assert initial.returncode == 0, initial.stdout
         payload = json.loads(initial.stdout)
-        assert payload["selected"] == ["foundation", "independent", "overlap-a"]
-        assert payload["serialization_reasons"]["overlap-b"] == "write_set_overlap:overlap-a"
+        assert payload["selected"] == ["foundation", "independent", "overlap-a", "overlap-b"], payload
         assert payload["serialization_reasons"]["dependent"] == "dependencies_not_integrated:foundation"
 
         running = json.loads(run(queue, "--active", "independent").stdout)
-        assert running["selected"] == ["foundation", "overlap-a"]
+        assert running["selected"] == ["foundation", "overlap-a", "overlap-b"], running
 
         advanced = json.loads(run(queue, "--integrated", "foundation", "--active", "independent").stdout)
-        assert advanced["selected"] == ["overlap-a", "dependent"]
+        assert advanced["selected"] == ["overlap-a", "overlap-b", "dependent"], advanced
 
+        # A declared shared mutable resource is the only remaining static reason
+        # to serialize two dependency-ready slices.
         shared = json.loads(run(
             queue,
             "--shared-resource", "independent=git-index",
@@ -97,35 +96,40 @@ def main() -> int:
         assert "dependent" not in shared_active["selected"]
         assert shared_active["serialization_reasons"]["dependent"] == "shared_resource_overlap:independent"
 
+        # The maximum independent set still picks the two slices that avoid the
+        # shared resource over the single slice that claims it.
         exact_queue = Path(raw) / "exact.toml"
         exact_queue.write_text("""
 [[slices]]
 id = "wide"
 depends_on = []
 scope = "wide conflict"
-write_set = ["src/a/**", "src/b/**"]
 checks = ["true"]
 
 [[slices]]
 id = "narrow-a"
 depends_on = []
 scope = "narrow a"
-write_set = ["src/a/**"]
 checks = ["true"]
 
 [[slices]]
 id = "narrow-b"
 depends_on = []
 scope = "narrow b"
-write_set = ["src/b/**"]
 checks = ["true"]
 """, encoding="utf-8")
-        exact = json.loads(run(exact_queue).stdout)
-        assert exact["selected"] == ["narrow-a", "narrow-b"]
+        exact = json.loads(run(
+            exact_queue,
+            "--shared-resource", "wide=resource-a",
+            "--shared-resource", "wide=resource-b",
+            "--shared-resource", "narrow-a=resource-a",
+            "--shared-resource", "narrow-b=resource-b",
+        ).stdout)
+        assert exact["selected"] == ["narrow-a", "narrow-b"], exact
 
         large_queue = Path(raw) / "large.toml"
         large_queue.write_text("\n".join(
-            f'[[slices]]\nid = "slice-{index}"\ndepends_on = []\nscope = "slice {index}"\nwrite_set = ["src/{index}/**"]\nchecks = ["true"]\n'
+            f'[[slices]]\nid = "slice-{index}"\ndepends_on = []\nscope = "slice {index}"\nchecks = ["true"]\n'
             for index in range(21)
         ), encoding="utf-8")
         bounded = run(large_queue)
@@ -137,6 +141,16 @@ checks = ["true"]
 
         invalid = run(queue, "--active", "missing")
         assert invalid.returncode != 0 and "unknown active slice IDs" in invalid.stdout
+
+        # A queue that still declares the retired write_set field is rejected
+        # rather than silently ignored.
+        legacy_queue = Path(raw) / "legacy.toml"
+        legacy_queue.write_text(
+            '[[slices]]\nid = "legacy"\ndepends_on = []\nscope = "legacy"\nwrite_set = ["src/**"]\nchecks = ["true"]\n',
+            encoding="utf-8",
+        )
+        legacy = run(legacy_queue)
+        assert legacy.returncode != 0 and "write_set" in legacy.stdout, legacy.stdout
 
     subprocess.run([sys.executable, "-m", "py_compile", str(SCRIPT)], check=True)
     print('{"status":"FRONTIER_TESTS_PASSED"}')

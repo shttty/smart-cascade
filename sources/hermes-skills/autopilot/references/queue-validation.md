@@ -21,12 +21,11 @@ The document may contain only:
 id = "stable-logical-slug"
 depends_on = []
 scope = "..."
-write_set = ["src/**"]
 checks = ["python3 -m pytest tests/unit"]
 
 ```
 
-Required slice fields are `id`, `depends_on`, `scope`, `write_set`, and `checks`. The Leader decides child decomposition at runtime; the queue declares no child topology. The following are invalid queue fields:
+Required slice fields are `id`, `depends_on`, `scope`, and `checks`. The Leader decides child decomposition at runtime; the queue declares no child topology. The following are invalid queue fields:
 
 ```text
 schema_version
@@ -42,6 +41,7 @@ candidate
 execution_mode
 git_authority
 root_coordinator
+write_set
 ```
 
 Those belong nowhere in this static queue. Root/Leader report production facts and Autopilot records control-plane evidence; the durable runtime seam that joins those domains remains a later design point.
@@ -54,19 +54,11 @@ The validator must:
 2. require unique human-readable slug IDs;
 3. require dependencies to refer to existing slices and reject self/cyclic edges;
 4. require `scope` to be a non-empty string;
-5. require a non-empty `write_set` and validate every entry as a normalized repository-relative path;
-6. require a non-empty `checks` list whose entries are non-empty strings;
-7. reject unknown fields, old execution-mode fields, and any declared child topology;
-8. report write-set overlap between concurrently eligible top-level slices;
-9. leave scheduling to Root and never add a `parallel` flag.
+5. require a non-empty `checks` list whose entries are non-empty strings;
+6. reject unknown fields, old execution-mode fields, and any declared child topology;
+7. leave scheduling to Root and never add a `parallel` flag.
 
-`depends_on` is a logical prerequisite, not a promise that slices can run concurrently. Root must also account for shared mutable resources such as lockfiles, generated outputs, snapshots, databases, build directories, common fixtures, and the Git index.
-
-## Path grammar
-
-A write-set entry is either one normalized repo-relative path or a directory prefix ending in `/**`.
-
-Reject absolute paths, empty segments, `.`, `..`, backslashes, NULs, trailing `/`, and glob syntax other than a final `/**`. Normalize separators before overlap checks. Separate worktrees do not make overlapping writes safe.
+`depends_on` is a logical prerequisite, not a promise that slices can run concurrently. Worktree isolation provides parallel safety. Root must also account for shared mutable resources such as lockfiles, generated outputs, snapshots, databases, build directories, common fixtures, and the Git index; declare those at runtime with `--shared-resource SLICE_ID=RESOURCE` when needed.
 
 ## Ownership
 

@@ -58,11 +58,10 @@ Ephemeral evidence includes Herdr session/workspace/pane/process IDs, OMP agent/
 Root and Leader recompute the maximum safe ready frontier whenever a dependency milestone changes. Readiness requires:
 
 1. accepted/integrated logical dependencies;
-2. disjoint normalized write sets;
-3. no conflicting shared mutable outputs;
-4. an execution mode that gives every active writer a safe cwd/worktree.
+2. no overlapping runtime-declared shared mutable resources;
+3. an execution mode that gives every active writer a separate worktree.
 
-A Root or child agent still being `working` does not block another newly ready slice. Overlapping writers are serialized or assigned to one writer.
+A Root or child agent still being `working` does not block another newly ready slice. Conflicting patches are detected during serial patch application and route to `REWORK`.
 
 ## Native OMP isolation and patch retention
 
@@ -71,7 +70,7 @@ The OMP production path uses native asynchronous tasks with profile-wide `task.i
 - Root→Leader and Leader→Executor writing tasks request `isolated=true`.
 - OMP owns temporary isolation directories, retained patch artifacts, and cleanup of those temporary resources. The runtime does not apply a child patch to a parent checkout automatically.
 - Hub and native async completion carry parent/child communication and settlement. Parents validate typed results, real changed paths, postconditions, and retained patch bytes before serially applying a verified child patch into their own isolated candidate.
-- Root owns logical attempts, candidate validity, accepted patch application, commit/integration, and DAG advancement. Leader owns child validation and bounded serial assembly. Executor owns only its bounded write set.
+- Root owns logical attempts, candidate validity, accepted patch application, commit/integration, and DAG advancement. Leader owns child validation and bounded serial assembly. Executor owns only its assigned worktree and task scope.
 
 For `REWORK`, rematerialize a new attempt from an explicit base, reapply and verify the last verified cumulative patch, then handle only the remaining findings. Logical slice and child identities remain stable across attempts. A temporary attempt with no retained patch may lose unmaterialized bytes; report that attempt and restart from the last verified candidate.
 

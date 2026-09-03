@@ -9,7 +9,7 @@ flowchart TD
     QUEUE[".smart-cascade/queue.toml<br/>静态 slice 定义"] --> ROOT
 
     subgraph ROOTLAYER["Root — 当前 session，唯一顶层协调者"]
-        ROOT["读取 queue<br/>按 depends_on / write_set<br/>计算 ready frontier"]
+        ROOT["读取 queue<br/>按 depends_on<br/>计算 ready frontier"]
     end
 
     ROOT -->|"native task, isolated=true"| LEADER
@@ -91,11 +91,10 @@ OMP profile 必须支持 native task、Agent Hub 和 session resume。`./scripts
 id = "stable-slice-id"
 depends_on = []
 scope = "一个有明确完成条件的顶层目标"
-write_set = ["src/**"]
 checks = ["python3 -m pytest"]
 ```
 
-Queue 只表达用户目标和顶层边界，不含 child 列表、运行状态或 `parallel` 标志——child 由 Leader 读代码后动态决定。写完先机械校验：
+Queue 只表达用户目标和顶层边界，不含文件路径、child 列表、运行状态或 `parallel` 标志——每个 slice 在自己的 worktree 中执行，child 由 Leader 读代码后动态决定。写完先机械校验：
 
 ```bash
 python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
@@ -117,14 +116,10 @@ npx skills add mattpocock/skills --skill=to-tickets
 | **Blocked by** 列出的 ticket | `depends_on` |
 | **What to build** | `scope` |
 | 验收标准中可执行的部分 | `checks` |
-| —— | `write_set`（需自行补充） |
 
-两个必须手工处理的地方：
+唯一需要手工处理的地方是 **`id` 不能带编号前缀**。ticket 文件名形如 `01-session-token-issuing.md`，但 `id` 必须是字母开头的 kebab-case，`01-session-token-issuing` 会被校验器拒绝，取 slug 部分即可。
 
-- **`id` 不能带编号前缀。** ticket 文件名形如 `01-session-token-issuing.md`，但 `id` 必须是字母开头的 kebab-case，`01-session-token-issuing` 会被校验器拒绝。取 slug 部分即可。
-- **`write_set` 必须自己补。** `to-tickets` 刻意不写具体文件路径（路径会过时），而 Smart Cascade 用 `write_set` 计算 ready frontier 与写集冲突，缺了它队列不合法。按每个 ticket 实际触及的目录填。
-
-补完再跑一次校验。若多个 slice 的 `write_set` 有重叠，校验器会给出 `serialization_required` notice，指出哪些 slice 因写集冲突必须串行——这是 `depends_on` 之外的第二层约束，不必手工改成依赖，Root 计算 frontier 时会自行处理。
+其余字段可直接照搬。queue 不声明文件路径——每个 slice 在自己的 worktree 里执行，写集冲突由 Leader 串行 apply patch 时暴露并走 REWORK，不需要提前预测每个 ticket 会碰哪些文件。
 
 然后建立明确的 Git checkpoint，在项目目录启动 OMP session，显式调用 `smart-cascade` Skill。Skill 会展示 queue、Git base、worktree snapshot 与 adapter receipt，并要求一次明确确认——**你确认之后，当前 session 才原地成为 Root**。
 

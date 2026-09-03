@@ -23,7 +23,7 @@ class ContractError(RuntimeError):
 
 BLOCKER_STATUSES = {"BLOCKED", "BLOCKED_ENVIRONMENT", "BLOCKED_ARCHITECTURE"}
 COMMON_PACKET_KEYS = {
-    "role", "task_name", "slice_id", "attempt_id", "base", "write_set", "checks", "non_goals", "result_schema",
+    "role", "task_name", "slice_id", "attempt_id", "base", "checks", "non_goals", "result_schema",
     "cumulative_patch", "rework_checklist", "rework_count",
 }
 PACKET_KEYS = {
@@ -311,13 +311,6 @@ def patch_paths(path: Path, base: str, repo_root: Path, label: str = "candidate 
     return patch_bytes_paths(path.read_bytes(), base, repo_root, label, baseline_patches=baselines)
 
 
-def validate_artifact_scope(actual: list[str], write_set: list[str], label: str) -> None:
-    validator = validator_module()
-    unexpected = [path for path in actual if not any(validator.path_matches(item, path) for item in write_set)]
-    if unexpected:
-        fail(f"{label} escape write_set: {', '.join(unexpected)}")
-
-
 def validate_packet(packet: dict[str, Any], role: str, repo_root: Path, queue_path: Path | None = None) -> dict[str, Any]:
     require_exact_keys(packet, PACKET_KEYS[role], f"{role} packet")
     if packet.get("role") != role:
@@ -330,7 +323,6 @@ def validate_packet(packet: dict[str, Any], role: str, repo_root: Path, queue_pa
     resolved = subprocess.run(["git", "cat-file", "-e", f"{base}^{{commit}}"], cwd=repo_root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30, check=False)
     if resolved.returncode != 0:
         fail("base does not resolve to a commit in the production repository")
-    write_set = require_strings(packet, "write_set")
     require_strings(packet, "checks")
     require_strings(packet, "non_goals", allow_empty=True)
     cumulative: Path | None = None
@@ -346,17 +338,6 @@ def validate_packet(packet: dict[str, Any], role: str, repo_root: Path, queue_pa
     if not isinstance(schema, dict) or schema.get("type") != "object" or schema.get("additionalProperties") is not False:
         fail("result_schema must be a closed JSON object schema")
     validate_result_schema(schema, role)
-    validator = validator_module()
-    normalized: list[str] = []
-    for index, raw in enumerate(write_set):
-        path = validator.normalize_repo_path(raw, f"write_set[{index}]")
-        if path is None or path != raw:
-            fail(f"write_set[{index}] is not normalized")
-        if path in normalized:
-            fail(f"write_set[{index}] duplicates a normalized path")
-        normalized.append(path)
-    if cumulative_paths:
-        validate_artifact_scope(cumulative_paths, normalized, "cumulative patch")
     slice_id = require_string(packet, "slice_id")
     if role == "leader":
         if queue_path is None:
@@ -366,17 +347,16 @@ def validate_packet(packet: dict[str, Any], role: str, repo_root: Path, queue_pa
         approved = approved_slice(queue_path.resolve(), slice_id)
         expected = {
             "scope": approved.get("scope"),
-            "write_set": approved.get("write_set"),
             "dependencies": approved.get("depends_on"),
             "checks": approved.get("checks"),
         }
-        observed = {"scope": scope, "write_set": write_set, "dependencies": dependencies, "checks": packet.get("checks")}
+        observed = {"scope": scope, "dependencies": dependencies, "checks": packet.get("checks")}
         if observed != expected:
             fail("leader packet does not exactly match its approved queue slice")
     else:
         require_string(packet, "child_id")
         require_string(packet, "postcondition")
-    return {"task_name": task_name, "slice_id": slice_id, "attempt_id": attempt_id, "base": base, "write_set": normalized, "cumulative_patch": str(cumulative) if cumulative else None}
+    return {"task_name": task_name, "slice_id": slice_id, "attempt_id": attempt_id, "base": base, "cumulative_patch": str(cumulative) if cumulative else None}
 
 
 def normalized_artifact(result: dict[str, Any], packet_info: dict[str, Any], repo_root: Path) -> tuple[Path | None, list[str]]:
@@ -419,7 +399,6 @@ def validate_normalized_result(packet: dict[str, Any], result: dict[str, Any], r
                 fail("failed runner changed_paths must be an array of non-empty strings")
             if sorted(claimed) != actual:
                 fail(f"failed runner changed_paths do not match artifact: claimed={sorted(claimed)} actual={actual}")
-        validate_artifact_scope(actual, packet_info["write_set"], "failed runner artifact")
         return {"status": "RESULT_FAILED_ARTIFACT_PRESERVED", "role": role, "task_name": packet_info["task_name"], "reason": reason, "artifact_disposition": "preserved_not_candidate", "patch_path": str(patch), "changed_paths": actual}
     if result.get("reason") is not None:
         fail("completed normalized runner result must set reason to null")
@@ -441,7 +420,6 @@ def validate_normalized_result(packet: dict[str, Any], result: dict[str, Any], r
         claimed_paths = require_strings(settlement, "changed_paths", allow_empty=True)
         if sorted(claimed_paths) != actual:
             fail(f"blocker changed_paths do not match artifact: claimed={sorted(claimed_paths)} actual={actual}")
-        validate_artifact_scope(actual, packet_info["write_set"], "blocked artifact")
         return {"status": "RESULT_BLOCKED_ARTIFACT_PRESERVED", "role": role, "task_name": packet_info["task_name"], "reason": reason, "artifact_disposition": "preserved_not_candidate", "patch_path": str(patch), "changed_paths": actual}
     expected = "READY_FOR_ROOT_REVIEW" if role == "leader" else "DONE"
     if business_status != expected:
@@ -463,7 +441,6 @@ def validate_normalized_result(packet: dict[str, Any], result: dict[str, Any], r
         claimed = require_strings(candidate, "changed_paths", allow_empty=True)
     if sorted(claimed) != actual:
         fail(f"settlement changed_paths do not match candidate patch: claimed={sorted(claimed)} actual={actual}")
-    validate_artifact_scope(actual, packet_info["write_set"], "candidate patch")
     return {"status": "RESULT_VALID", "role": role, "task_name": packet_info["task_name"], "patch_path": str(patch), "changed_paths": actual}
 
 

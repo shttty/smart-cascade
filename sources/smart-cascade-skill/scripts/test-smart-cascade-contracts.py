@@ -97,7 +97,7 @@ def main() -> int:
 
         packet = {
             "role": "executor", "task_name": "ChildA", "slice_id": "slice-a", "child_id": "child-a", "attempt_id": "child-a-attempt-1", "base": base,
-            "write_set": ["src/**"], "checks": ["read exact bytes"], "non_goals": [], "postcondition": "src/file.txt contains after", "result_schema": SCHEMA,
+            "checks": ["read exact bytes"], "non_goals": [], "postcondition": "src/file.txt contains after", "result_schema": SCHEMA,
         }
         settlement = {"status": "DONE", "slice_id": "slice-a", "child_id": "child-a", "attempt_id": "child-a-attempt-1", "changed_paths": ["src/file.txt"], "checks": ["exact bytes: passed"], "evidence": "focused check passed"}
         packet_path = write(root / "packet.json", packet)
@@ -132,16 +132,16 @@ def main() -> int:
         }
         leader_packet = {
             "role": "leader", "task_name": "LeaderA", "slice_id": "slice-a", "attempt_id": "leader-attempt-1", "base": base,
-            "scope": "mutate src only", "write_set": ["src/**"],
+            "scope": "mutate src only",
             "dependencies": [], "checks": ["read exact bytes"], "non_goals": [], "result_schema": leader_schema,
         }
         queue_path = root / "queue.toml"
-        queue_path.write_text('[[slices]]\nid = "slice-a"\ndepends_on = []\nscope = "mutate src only"\nwrite_set = ["src/**"]\nchecks = ["read exact bytes"]\n', encoding="utf-8")
+        queue_path.write_text('[[slices]]\nid = "slice-a"\ndepends_on = []\nscope = "mutate src only"\nchecks = ["read exact bytes"]\n', encoding="utf-8")
         leader_packet_path = write(root / "leader-packet.json", leader_packet)
         valid_leader_packet = run([sys.executable, str(CONTRACTS), "--repo-root", str(repo), "packet", "leader", str(leader_packet_path), "--queue", str(queue_path)], cwd=repo)
         assert valid_leader_packet.returncode == 0, valid_leader_packet.stdout
         assert json.loads(valid_leader_packet.stdout)["status"] == "PACKET_VALID"
-        widened_leader = dict(leader_packet, write_set=["src/**", "other/**"])
+        widened_leader = dict(leader_packet, scope="mutate src and everything else")
         rejected_widened = run([sys.executable, str(CONTRACTS), "--repo-root", str(repo), "packet", "leader", str(write(root / "widened-leader.json", widened_leader)), "--queue", str(queue_path)], cwd=repo)
         assert rejected_widened.returncode != 0 and "approved queue slice" in rejected_widened.stdout, rejected_widened.stdout
 

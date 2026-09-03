@@ -23,7 +23,7 @@ Root owns the complete DAG, slice attempts, acceptance, commits, integration, de
 
 ## Static queue
 
-`.smart-cascade/queue.toml` contains stable `id`, `depends_on`, `scope`, normalized `write_set`, and named `checks`. It has no runtime state or parallel flag.
+`.smart-cascade/queue.toml` contains stable `id`, `depends_on`, `scope`, and named `checks`. It has no runtime state or parallel flag.
 
 After run authorization, Root reads the complete queue and computes the maximum safe ready frontier. Root recomputes it after every accepted integration; unrelated active Leaders do not delay newly ready work.
 
@@ -32,11 +32,10 @@ After run authorization, Root reads the complete queue and computes the maximum 
 A slice/child is dispatchable only when:
 
 1. logical dependencies are accepted and integrated;
-2. normalized write sets are disjoint from active writers;
-3. shared mutable resources are disjoint, including lockfiles, generated outputs, snapshots, databases, build/coverage directories, fixtures, and Git index operations;
-4. every writer has a safe execution cwd/worktree.
+2. every writer has a safe execution cwd/worktree;
+3. shared mutable resources are disjoint, including lockfiles, generated outputs, snapshots, databases, build/coverage directories, fixtures, and Git index operations.
 
-Record a concrete serialization reason when the frontier is narrower than dependency readiness.
+The default frontier includes every dependency-ready slice. Record a concrete serialization reason only for shared-resource overlap or dependencies not integrated.
 
 ## Root production loop
 
@@ -57,7 +56,7 @@ Root coordinates; it does not replace Leader as the product-change implementer.
 
 Root→Leader and Leader→Executor writing tasks request `isolated=true`. The profile-wide policy is `task.isolation.mode=auto`, `apply=false`, `merge=patch`. OMP owns temporary isolation directories, captures retained patch artifacts, and cleans those temporary resources; it does not automatically apply patches to parent checkouts.
 
-Hub is the runtime communication bus for parent/child messages and completion. A parent validates the child result, real changed paths, postconditions, and retained patch, then serially applies each verified child patch into its own isolated candidate. Root owns logical attempts, candidate validity, accepted patch application, commit/integration, and DAG advancement; Leader owns child validation and bounded assembly; Executor owns only the bounded write set.
+Hub is the runtime communication bus for parent/child messages and completion. A parent validates the child result, real changed paths, postconditions, and retained patch, then serially applies each verified child patch into its own isolated candidate. Root owns logical attempts, candidate validity, accepted patch application, commit/integration, and DAG advancement; Leader owns child validation and bounded assembly; Executor owns only the bounded scope.
 
 For `REWORK`, a new attempt applies and verifies the last cumulative patch against an explicit base before addressing the exact remaining checklist. Logical identities remain stable. If an abrupt temporary attempt emits no patch, report the lost partial attempt and restart from the last verified candidate.
 
@@ -65,7 +64,7 @@ External Herdr Leader panes and any borrowed-cwd adapter are not the OMP product
 
 ## Leader authority
 
-Leader chooses direct, delegated, or mixed execution within its approved isolated candidate and queue write set. Leader verifies child results and performs bounded one-writer assembly.
+Leader chooses direct, delegated, or mixed execution within its approved isolated candidate and slice scope. Leader verifies child results and performs bounded one-writer assembly.
 
 
 ## Child packet
@@ -75,7 +74,7 @@ logical child_id
 parent_slice_id
 attempt_id and parent candidate/base
 exact cwd/worktree or isolation mode
-allowed paths / normalized write set
+scope boundary
 inputs and non-goals
 postconditions or deterministic postimage
 named checks

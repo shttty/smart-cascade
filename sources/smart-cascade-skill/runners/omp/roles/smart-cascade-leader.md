@@ -16,7 +16,7 @@ Require one core packet containing:
 ```text
 slice_id and attempt_id
 parent candidate/base and cumulative patch, when applicable
-scope and normalized write_set
+scope
 dependencies and non-goals
 named checks
 strict business settlement schema
