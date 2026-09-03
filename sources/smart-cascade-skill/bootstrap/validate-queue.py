@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import posixpath
 import re
 import sys
 import tomllib
@@ -49,58 +48,6 @@ def error(path: str, message: str) -> dict[str, str]:
 
 def is_string_list(value: Any) -> TypeGuard[list[str]]:
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
-
-
-def normalize_repo_path(raw: Any, path: str, *, prefix_only: bool = False) -> str | None:
-    if not isinstance(raw, str) or not raw:
-        return None
-    if "\x00" in raw or "\\" in raw:
-        return None
-    if raw.startswith("/") or raw.endswith("/"):
-        return None
-
-    is_prefix = raw.endswith("/**")
-    if is_prefix:
-        raw = raw[:-3]
-    elif prefix_only:
-        return None
-
-    # The only permitted glob syntax is the terminal `/**` directory prefix.
-    if any(char in raw for char in "*?[]{}"):
-        return None
-    if not raw or raw.startswith("/"):
-        return None
-    parts = raw.split("/")
-    if any(part in {"", ".", ".."} for part in parts):
-        return None
-    normalized = posixpath.normpath("/".join(parts))
-    if normalized != "/".join(parts):
-        return None
-    return normalized + "/**" if is_prefix else normalized
-
-
-def path_matches(left: str, right: str) -> bool:
-    """Return whether two normalized exact/prefix entries overlap."""
-    left_prefix = left.endswith("/**")
-    right_prefix = right.endswith("/**")
-    left_base = left[:-3] if left_prefix else left
-    right_base = right[:-3] if right_prefix else right
-    if left_base == right_base:
-        return True
-    if left_prefix and (right_base == left_base or right_base.startswith(left_base + "/")):
-        return True
-    if right_prefix and (left_base == right_base or left_base.startswith(right_base + "/")):
-        return True
-    return False
-
-
-def path_contains(container: str, child: str) -> bool:
-    """Return whether a normalized parent prefix contains a child prefix."""
-    if not container.endswith("/**") or not child.endswith("/**"):
-        return False
-    container_base = container[:-3]
-    child_base = child[:-3]
-    return child_base == container_base or child_base.startswith(container_base + "/")
 
 
 def reaches(graph: dict[str, set[str]], start: str, target: str) -> bool:
