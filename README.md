@@ -60,8 +60,6 @@ flowchart TD
     class ASSEMBLE,CANDIDATE merge
 ```
 
-Root 的 `PASS` 只是对该 slice 的 contract、postcondition 和 checks 的技术验收，不等于你对最终交付的接受。Runner 报 `completed` 也不等于 Smart Cascade 完成。
-
 ## 前置依赖
 
 | | 用途 |
@@ -94,49 +92,15 @@ scope = "一个有明确完成条件的顶层目标"
 checks = ["做完之后必须成立的、可验证的验收目标"]
 ```
 
-Queue 只表达用户目标和顶层边界，不含文件路径、child 列表、运行状态或 `parallel` 标志——每个 slice 在自己的 worktree 中执行，child 由 Leader 读代码后动态决定。
+Queue 只表达用户目标和顶层边界，不含文件路径、child 列表、运行状态或 `parallel` 标志——每个 slice 在自己的 worktree 中执行，child 由 Leader 读代码后动态决定。`checks` 是验收目标而非命令清单：写 queue 时你还不知道该跑什么命令，但知道做完之后什么必须成立；具体验证方式由实施者在完成后决定并回报。字段语义见 [`design/smart-cascade-flow.md`](design/smart-cascade-flow.md)。
 
-`checks` 写的是**验收目标**而不是命令清单。写 queue 时你还没做这份工作，不可能知道该跑哪条命令；但「做完之后什么必须成立」是定义 slice 时就清楚的。已经知道命令就直接写命令，不知道就写目标：
-
-```toml
-checks = ["新 auth 模块的单测全部通过", "现有测试套件无回归"]
-```
-
-具体跑什么由实施者在完成后自行决定，并在 settlement 中回报实际执行了什么。纯重构、文档、schema 迁移这类没有干净独立测试的 slice，也因此不必硬凑一条假命令。写完先机械校验：
+如果不想手写，队列也可以从 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) 的产物机械生成——它的 tracer bullet 切法和 **Blocked by** 依赖图正好对应 slice 与 `depends_on`：
 
 ```bash
-python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
+python3 ~/.omp/skills/smart-cascade/bootstrap/to-queue.py --help
 ```
 
-### 用 to-tickets 的产物生成 queue
-
-如果需求还没想清楚怎么切，推荐先用 Matt Pocock 的 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) skill 拆一轮，再把它的产物映射成 queue。它产出的 tracer bullet 切法和 **Blocked by** 依赖图正好对应 Smart Cascade 的 slice 与 `depends_on`，省掉自己凭空设计切分粒度。
-
-```bash
-npx skills add mattpocock/skills --skill=to-tickets
-```
-
-在 agent 里运行 `/to-tickets`，产物落在 `.scratch/<feature-slug>/issues/<NN>-<slug>.md`（每个 ticket 一个文件）。然后直接转换：
-
-```bash
-python3 ~/.omp/skills/smart-cascade/bootstrap/to-queue.py \
-  .scratch/<feature-slug>/issues -o .smart-cascade/queue.toml
-```
-
-映射是机械的，没有决策点：
-
-| to-tickets 产物 | queue.toml 字段 |
-| --- | --- |
-| 标题 slug（自动剥掉 `NN-` 编号前缀） | `id` |
-| **Blocked by**（编号或标题都能解析） | `depends_on` |
-| **What to build** | `scope` |
-| 验收标准（Acceptance criteria） | `checks` |
-
-ticket 的验收标准本来就写成「什么必须成立」，正是 `checks` 需要的形式，逐字搬运即可，不必翻译成命令。本地文件模板和 tracker 的 `## What to build` 标题式模板都能识别。
-
-转换器不猜：悬空的 **Blocked by** 引用、缺失的验收标准、重复 ID 和环形依赖都会报错退出，且**不写出半个 queue**。报错就去修 ticket，或者手写 queue。
-
-生成后仍需你过目 scope 措辞和依赖边，再走校验：
+写完先机械校验：
 
 ```bash
 python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
