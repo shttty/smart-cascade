@@ -273,24 +273,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Convert a to-tickets issues directory into a Smart Cascade queue.",
         epilog=(
-            "Each ticket maps onto one slice with no decision left to make:\n"
+            "Mapping, with no decision left to make:\n"
             "\n"
             "  title slug (NN- prefix stripped)  ->  id\n"
             "  Blocked by (number or title)      ->  depends_on\n"
             "  What to build                     ->  scope\n"
             "  acceptance criteria               ->  checks, copied verbatim\n"
             "\n"
-            "Acceptance criteria are already written as statements of what must be\n"
-            "true, which is exactly what `checks` means, so they are carried over\n"
-            "word for word rather than translated into commands. Both the local\n"
-            "bold-field template and the tracker `## What to build` heading\n"
-            "template parse.\n"
-            "\n"
-            "This converter refuses rather than guesses. Dangling Blocked by\n"
-            "references, missing acceptance criteria, duplicate ids, and dependency\n"
-            "cycles all exit non-zero without writing a partial queue. Review the\n"
-            "scope wording and dependency edges, then validate with\n"
-            "bootstrap/validate-queue.py before starting a run."
+            "Refuses rather than guesses: dangling blockers, missing acceptance\n"
+            "criteria, duplicate ids, and cycles exit non-zero without writing."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
