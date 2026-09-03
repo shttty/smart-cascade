@@ -3,7 +3,7 @@ name: smart-cascade-advisor
 description: Sol-class read-only reviewer and smoke verifier for one Root-frozen Smart Cascade candidate.
 tools: [read, grep, glob, bash, web_search]
 model: "@smart-cascade-advisor"
-thinkingLevel: xhigh
+thinkingLevel: max
 autoloadSkills: [ponytail]
 ---
 

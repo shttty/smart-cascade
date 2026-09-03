@@ -46,7 +46,7 @@ roles:
     agent: smart-cascade-advisor
     model_role: smart-cascade-advisor
     model: clp/gpt-5.6-sol
-    thinking_level: xhigh
+    thinking_level: max
   semantic_executor:
     agent: smart-cascade-executor
     model_role: smart-cascade-semantic

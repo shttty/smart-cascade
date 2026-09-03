@@ -41,13 +41,13 @@ verifier:
     - --profile
     - smart-cascade-omp
     - --model
-    - "@smart-cascade-advisor"
+    - "@smart-cascade-root"
     - --thinking
-    - xhigh
+    - high
 
-  model_role: smart-cascade-advisor
+  model_role: smart-cascade-root
   model: clp/gpt-5.6-sol
-  effort: xhigh
+  effort: high
 
   # Where the verifier's pane is opened. `session` empty means the run's own
   # Herdr session; set it to place the verifier elsewhere.
