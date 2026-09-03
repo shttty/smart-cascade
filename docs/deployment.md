@@ -77,6 +77,14 @@ models.yml  *.db  sessions/  terminal-sessions/  extensions/  logs/
 
 安装可选的 Hermes 外部监督 Skill。Autopilot 包含 `SKILL.md`、references 与 `scripts/`（`agent-watch.sh` 守望、`agent-dispatch.sh` 带送达证明的派发、`config.sh` 共享配置读取），通过已安装的 `herdr` skill 完成 Root 启动、初始化、控制和观察；它不拥有生产调度或 Git。
 
+### commit 边界的双重验收
+
+启用 Autopilot 后，Root 的 commit 对话不再自动走过去。Root 完成 slice 验收弹出对话时进入 `blocked`，`agent-watch.sh guard` 阻塞在 `herdr agent wait --until idle --until done --until blocked` 上被这个事件唤醒；Autopilot 取消自动选中的 commit 步骤按住边界，另起一个 pane 启动 verifier agent 独立跑一遍项目的高层验证入口，Root 自己也跑一遍。两份读数一致且通过才放行，否则作为 finding 交回 Root 走 `REWORK`。
+
+verifier 的产出是边界证据而非 slice 判决：`PASS` / `REWORK` / `BLOCKED` 归 Root，Autopilot 不自己跑项目验证命令，也不 commit。
+
+行为由 `autopilot-config.yaml` 控制：`commit_boundary.answer` 取 `recommend`（超时后自动选推荐值）或 `ask`（每次问人），`commit_boundary.auto_select_after_seconds` 是超时秒数，`verifier.enabled: false` 可跳过交叉检查只保留 Root 自己那份读数，`observation.interval_minutes: 0` 关闭周期观察（完成与 blocker 事件不受影响，始终即时）。
+
 Smart Cascade adapter 只提供 admission `check`。运行时正确性由 Root 对 settlement、patch、checks 和 integration 的 candidate 验收保证。
 
 ## 项目配置

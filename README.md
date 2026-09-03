@@ -151,6 +151,28 @@ task:
 
 这些脚本只服务于外部监督：它不包含 Smart Cascade runner 配置，不释放 slice、不调度 production children、不决定 acceptance、不拥有 Git。
 
+#### 启用 Autopilot 后运行方式会怎么变
+
+不启用时，Root 跑完一个 slice 的验收就走自己的 commit 对话，默认路径一路到底。启用 Autopilot 后，commit 边界变成一个真正会停下来的检查点：
+
+1. Root 完成 slice 验收、弹出 `commit` / `keep as candidate` 对话时进入 `blocked`，Herdr 把这个事件送出来。
+2. `agent-watch.sh guard` 正阻塞在 `herdr agent wait --until idle --until done --until blocked` 上，`blocked` 命中即退出并唤醒 Autopilot——不是轮询等到的，是事件驱动。
+3. Autopilot 先取消那个会自动选中的 commit 步骤，把边界按住，不让 30 秒倒计时替它做决定。
+4. 然后另起一个 pane 启动 verifier agent 独立跑一遍项目的高层验证入口；Root 自己也跑一遍。同一批 tier 有两份互不相干的读数。
+5. 两份读数一致且通过，边界才放行；不一致或有 tier 失败，评估结果作为 finding 交回 Root 走 `REWORK`，Root 决定处置。
+
+要点是 verifier 与 Root 的分工：verifier 的产出是 commit 边界的**证据**，不是 slice 判决。`PASS` / `REWORK` / `BLOCKED` 始终归 Root，Autopilot 既不自己跑项目验证命令，也不 commit。它做的是按住边界、组织交叉验证、把结论送回 Root。
+
+相关配置都在 [`autopilot-config.yaml`](sources/hermes-skills/autopilot/autopilot-config.yaml)：
+
+| 配置 | 作用 |
+|---|---|
+| `commit_boundary.answer` | `recommend` 走推荐值并在超时后自动选，`ask` 每次都停下来问人 |
+| `commit_boundary.auto_select_after_seconds` | 自动选之前留多少秒（默认 30） |
+| `verifier.enabled` | `false` 则跳过交叉检查，只剩 Root 自己那份读数 |
+| `verifier.launch_argv` / `model` / `effort` | verifier agent 以什么 profile、模型、思考强度启动 |
+| `observation.interval_minutes` | 周期性进度观察间隔，`0` 关闭；完成与 blocker 事件始终即时 |
+
 ## 项目级状态
 
 项目只保存：
