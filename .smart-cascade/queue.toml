@@ -5,9 +5,13 @@
 id = "large-slice-example"
 depends_on = []
 scope = "One bounded large slice described by the controller."
-checks = ["python3 -m pytest"]
+checks = ["every deterministic core test suite still passes"]
 
 # A second [[slices]] block adds another independent large slice.
+# `checks` states acceptance goals — what must hold once the slice is done —
+# not the commands to run. A queue is written before the work exists, so the
+# command set is not yet knowable; the implementer chooses the verification and
+# reports what it actually ran.
 # Root computes the ready frontier from depends_on and observed shared mutable
 # resources; do not add a parallel=true flag. Slices do not declare paths: each
 # runs in its own worktree, and the Leader applies patches serially, so a write

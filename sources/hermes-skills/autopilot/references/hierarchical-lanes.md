@@ -40,7 +40,7 @@ assigned worktree / task scope
 inputs and non-goals
 execution role
 postconditions / deterministic postimage
-named checks
+named acceptance targets (`checks`)
 REWORK checklist
 strict structured task-completion output schema
 ```
@@ -52,7 +52,7 @@ Use Mechanical Executor only for a decided deterministic postimage. Use semantic
 ## Child settlement and assembly
 
 1. Executor sends plain-prose settlement context through Hub and returns the strict structured task-completion result with its retained patch artifact.
-2. Leader verifies real artifact bytes, diff, paths, postconditions, and checks.
+2. Leader verifies real artifact bytes, diff, paths, postconditions, and reported verification against the acceptance targets.
 3. Leader accepts the child for bounded assembly or issues precise REWORK under the same logical identity.
 4. REWORK rematerializes from the last verified cumulative patch and explicit base.
 5. Leader serially applies verified child patches into its isolated candidate under a matching Root grant.

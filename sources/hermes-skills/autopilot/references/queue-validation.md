@@ -21,11 +21,11 @@ The document may contain only:
 id = "stable-logical-slug"
 depends_on = []
 scope = "..."
-checks = ["python3 -m pytest tests/unit"]
+checks = ["All auth module unit tests pass"]
 
 ```
 
-Required slice fields are `id`, `depends_on`, `scope`, and `checks`. The Leader decides child decomposition at runtime; the queue declares no child topology. The following are invalid queue fields:
+`checks` entries are verifiable acceptance targets; they may be natural-language outcomes or commands already known when the queue is written. The framework passes them through and does not execute them; implementation reports the actual verification commands and results in settlement. Required slice fields are `id`, `depends_on`, `scope`, and `checks`. The Leader decides child decomposition at runtime; the queue declares no child topology. The following are invalid queue fields:
 
 ```text
 schema_version
@@ -54,7 +54,7 @@ The validator must:
 2. require unique human-readable slug IDs;
 3. require dependencies to refer to existing slices and reject self/cyclic edges;
 4. require `scope` to be a non-empty string;
-5. require a non-empty `checks` list whose entries are non-empty strings;
+5. require a non-empty `checks` list whose entries are non-empty acceptance-target strings;
 6. reject unknown fields, old execution-mode fields, and any declared child topology;
 7. leave scheduling to Root and never add a `parallel` flag.
 

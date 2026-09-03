@@ -173,7 +173,7 @@ def validate_queue(document: Any, source: str) -> tuple[list[dict[str, str]], li
 
         checks = item.get("checks")
         if not is_string_list(checks) or not checks or any(not check.strip() for check in checks):
-            errors.append(error(f"{prefix}.checks", "must be a non-empty array of non-empty strings"))
+            errors.append(error(f"{prefix}.checks", "must be a non-empty array of non-empty acceptance goals"))
 
     for slice_id, deps in dependencies.items():
         if slice_id.startswith("<invalid-"):

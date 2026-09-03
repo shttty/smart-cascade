@@ -44,7 +44,7 @@ logical slice/child ID
 parent and dependency relationship
 ordered attempt lineage
 base / inherited candidate
-candidate identity and checks
+candidate identity and acceptance-target evidence
 commit/integration evidence
 attempt disposition
 ```

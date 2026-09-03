@@ -23,7 +23,7 @@ Root owns the complete DAG, slice attempts, acceptance, commits, integration, de
 
 ## Static queue
 
-`.smart-cascade/queue.toml` contains stable `id`, `depends_on`, `scope`, and named `checks`. It has no runtime state or parallel flag.
+`.smart-cascade/queue.toml` contains stable `id`, `depends_on`, `scope`, and `checks` that state acceptance targets. It has no runtime state or parallel flag.
 
 After run authorization, Root reads the complete queue and computes the maximum safe ready frontier. Root recomputes it after every accepted integration; unrelated active Leaders do not delay newly ready work.
 
@@ -42,7 +42,7 @@ The default frontier includes every dependency-ready slice. Record a concrete se
 1. Select every safely ready slice.
 2. Spawn one native asynchronous OMP Leader task per slice with `isolated=true`.
 3. Process whichever Leader Hub message or typed settlement arrives first.
-4. Verify the exact retained patch artifact, changed paths, postconditions, checks, and typed result.
+4. Verify the exact retained patch artifact, changed paths, postconditions, acceptance targets, reported verification, and typed result.
 5. Freeze a candidate only after proving no active writer can mutate it.
 6. Obtain Advisor evidence when the acceptance risk requires it.
 7. Decide `PASS`, `REWORK`, or `BLOCKED`.
@@ -77,7 +77,7 @@ exact cwd/worktree or isolation mode
 scope boundary
 inputs and non-goals
 postconditions or deterministic postimage
-named checks
+named acceptance targets (`checks`)
 REWORK checklist, when applicable
 terminal result / output schema
 ```

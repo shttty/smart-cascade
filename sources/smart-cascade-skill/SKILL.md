@@ -23,7 +23,7 @@ python3 runners/omp/adapter.py check \
 ```
 
 `--config` defaults to `runners/omp/runner-launch.yaml`. `--profile` accepts a profile name under `~/.omp/profiles` or a full profile directory. A successful explicit selection is persisted in `<project>/.smart-cascade/override.yaml`; later checks reuse it. Without an override, `dispatch_contract.profile_name` is the default. Require `ADAPTER_READY` and retain the exact receipt. A missing/mismatched profile, mandatory isolation/async/batch boundary, executable/package identity, role identity, adapter operation, capability declaration, or RPC negotiation is `BLOCKED_ENVIRONMENT`.
-4. Verify the exact Git base and complete tracked/untracked worktree snapshot. Present the queue/write-set/check summary plus the adapter receipt. Ask exactly one run-level confirmation. Invocation is not authorization.
+4. Verify the exact Git base and complete tracked/untracked worktree snapshot. Present the queue and acceptance-target summary plus the adapter receipt. Ask exactly one run-level confirmation. Invocation is not authorization.
 
 After the explicit yes and before production dispatch, run `SMART_CASCADE_PROJECT_ROOT=<project> SMART_CASCADE_CREATE_STATE=1 bash bootstrap/init-environment.sh` once to create the ignored receipt/counter directories. Recheck that the approved queue, base, and preauthorization snapshot boundary have not drifted; only these declared runtime directories may be new.
 ## Production projection
@@ -35,7 +35,7 @@ After confirmation, follow the core Root workflow. For OMP, native task/Hub/RPC 
 - treat lifecycle/RPC/native progress and task-result frames only as adapter-native evidence;
 - validate agent provenance, admitted model projection, invocation strictness/isolation, observed task call ID, parent/child session lineage, terminal job receipt, native `<task-result>` settlement, `<merge-summary>` patch path, and retained patch existence directly from the authoritative parent transcript inside the OMP adapter;
 - run `python3 runners/omp/normalize.py --config <config> --parent-transcript <authoritative-parent.jsonl> --runtime-id <exact-native-id> <role> <packet>` to parse that transcript and produce the runner-neutral result; do not author a parallel evidence JSON file;
-- pass only that normalized result to `python3 bootstrap/contracts.py result ...` for business settlement, patch bytes, Git base, write-set, and candidate validation.
+- pass only that normalized result to `python3 bootstrap/contracts.py result ...` for business settlement, patch bytes, Git base, task scope, and candidate validation.
 
 Never pass OMP session, model, Hub, lifecycle, task-envelope, or profile fields into core packets/results.
 
@@ -47,8 +47,8 @@ On Root resume, use OMP Hub/list and public session evidence to observe parked c
 
 Root alone decides `PASS`, `REWORK`, or `BLOCKED`, applies accepted patches, performs production Git integration, advances dependencies, and reports exact adapter/core evidence, cleanup, recovery, blockers, and residual risks. Runner settlement alone is not completion.
 
-Slice `checks` are the floor, not the ceiling. Whoever holds commit authority must, before the commit boundary, enumerate the project's own higher-tier verification entry points — end-to-end, smoke, integration, contract, and equivalents — and run every one whose preconditions the current environment already satisfies. Discover them from the project's own manifest rather than assuming a fixed command set; a queue whose `checks` name only the unit-test command does not narrow this obligation.
+Slice `checks` are acceptance targets, not a prewritten command list. They state what must be true when the slice is complete and may be natural-language goals or commands already known at queue time. The implementing Leader or Executor chooses how to verify those targets after the work, and reports the commands actually run in settlement. Slice `checks` are the floor, not the ceiling: whoever holds commit authority must, before the commit boundary, enumerate the project's own higher-tier verification entry points — end-to-end, smoke, integration, contract, and equivalents — and run every one whose preconditions the current environment already satisfies. Discover them from the project's own manifest rather than assuming a fixed command set; checks that name only the unit-test goal do not narrow this obligation.
 
-Report each such entry point as passed, failed, or not-runnable-with-reason. A missing precondition (absent service, unset environment variable) is `not runnable` and must be named; it is never silently equivalent to passing, and a green unit-test suite never stands in for an unrun tier. Failures at these tiers block the commit boundary exactly as a failed `check` does.
+Report each such entry point as passed, failed, or not-runnable-with-reason. A missing precondition (absent service, unset environment variable) is `not runnable` and must be named; it is never silently equivalent to passing, and a green unit-test suite never stands in for an unrun tier. Failures at these tiers block the commit boundary exactly as an unmet acceptance target does.
 
 After the final accepted candidate passes Root verification, present exactly one commit boundary before production Git integration. Offer committing the accepted candidate as the recommended default and retaining it as an uncommitted worktree candidate as the alternative. Record in the run receipt which option was taken and whether the user chose it explicitly or the runner auto-selected the default. Never present this boundary before verification, and never commit a candidate that failed verification.

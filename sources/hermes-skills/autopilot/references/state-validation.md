@@ -12,10 +12,10 @@ A future production-state validator belongs to Root's recovery seam and must ver
 - stable logical slice/child identity and dependency milestones;
 - ordered attempt lineage and parent candidate/base;
 - native OMP `isolated=true` task mode and retained patch artifact identity;
-- child write-set assignments and confinement;
+- child task-scope assignments and worktree confinement;
 - Hub prose settlement correlation using slice/attempt/nonce labels where needed;
 - Leader/Executor settlement and bounded serial assembly;
-- candidate freeze, Advisor/check evidence, and Root decision;
+- candidate freeze, Advisor/acceptance-target verification evidence, and Root decision;
 - accepted patch application, commit/integration identity, and dependency advancement;
 - cleanup or preserved-blocker disposition.
 

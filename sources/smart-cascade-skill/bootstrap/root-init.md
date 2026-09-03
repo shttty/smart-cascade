@@ -26,11 +26,11 @@ Core sends a closed business packet and accepts only a normalized result:
 {"schema_version":1,"status":"completed|failed","artifact":{"kind":"git_patch","path":"..."}|null,"settlement":{},"reason":"..."}
 ```
 
-`artifact` is runner-produced candidate evidence, not acceptance. A completed normalized result still requires core settlement, patch-byte, Git-base, write-set, postcondition, check, and no-active-writer validation. A failed result with a valid artifact is `preserved_not_candidate`; a failed result without an artifact is `lost_unmaterialized`.
+`artifact` is runner-produced candidate evidence, not acceptance. A completed normalized result still requires core settlement, patch-byte, Git-base, changed-path, postcondition, acceptance-target, and no-active-writer validation. A failed result with a valid artifact is `preserved_not_candidate`; a failed result without an artifact is `lost_unmaterialized`.
 
 ## Incremental scheduling
 
-Use `frontier.py` or equivalent direct reasoning to select every safely ready slice. Recompute after each accepted integration. Dependencies, normalized write-set overlap, active writers, and observed shared mutable outputs constrain readiness. Record a concrete serialization reason whenever the frontier is narrower than dependency readiness. Do not persist live topology or add a second queue.
+Use `frontier.py` or equivalent direct reasoning to select every safely ready slice. Recompute after each accepted integration. Dependencies, active writers, and observed shared mutable resources constrain readiness. Record a concrete serialization reason whenever the frontier is narrower than dependency readiness. Do not persist live topology or add a second queue.
 
 ## Packet and candidate validation
 
@@ -38,12 +38,12 @@ Use `frontier.py` or equivalent direct reasoning to select every safely ready sl
 2. Validate the closed Leader packet with `contracts.py packet leader <packet> --queue <approved-queue>` before every top-level dispatch. Leader validates any Executor packet with `contracts.py packet executor <packet>` before child dispatch. Pass the same approved queue to `contracts.py result leader`.
 3. Pass the packet to the selected adapter, together with the packet's exact `result_schema` as the strict output schema the runner must enforce. How a runner binds a packet to its native invocation — marker format, serialization, transport — belongs to that adapter, not to this contract. Runtime/session/model/transport fields remain outside packet fields.
 4. Require the adapter's `normalize` operation to parse the selected runner's authoritative parent transcript or equivalent native receipt directly; caller-authored evidence summaries are not accepted. The adapter emits the shared result only from the observed invocation, terminal result, strict settlement, and retained artifact.
-5. Validate the normalized result with `contracts.py result`; verify candidate patch bytes and changed paths against the exact base and write set.
+5. Validate the normalized result with `contracts.py result`; verify candidate patch bytes and changed paths against the exact base and worktree/task scope.
 6. Freeze only a valid candidate. A runner completion, progress observation, message, or self-report is never acceptance by itself.
 
 ## Decisions
 
-- `PASS`: deliberately apply the verified candidate, rerun required checks, commit/integrate as Root, emit a timestamped receipt, advance dependencies, and recompute the frontier.
+- `PASS`: deliberately apply the verified candidate, rerun verification required by the acceptance targets, commit/integrate as Root, emit a timestamped receipt, advance dependencies, and recompute the frontier.
 - `REWORK`: increment the appropriate atomic counter in `state.py`, retain the logical identity, create the next ordered attempt from the exact base plus last verified cumulative patch, preserve predecessor evidence, and send only the remaining checklist.
 - `BLOCKED`: preserve the exact reason and any independently validated artifact disposition, then continue independent ready work.
 

@@ -95,7 +95,7 @@ python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/q
 id = "stable-slice-id"
 depends_on = []
 scope = "一个有明确完成条件的顶层目标"
-checks = ["具体、可运行的检查命令"]
+checks = ["做完之后必须成立的、可验证的验收目标"]
 
 ```
 
@@ -259,7 +259,7 @@ slice 是稳定的产品目标、边界和验收契约；child 是 Leader 针对
 
 重新划分必须满足：
 
-- 不扩大 slice 的 scope、write set、postcondition 或架构边界；
+- 不扩大 slice 的 scope、postcondition 或架构边界；
 - 先检查当前 worktree、已应用变更和已有 artifact，再决定还缺什么；
 - 旧 child 的 session/消息是历史上下文，不自动代表当前 child 仍然 active；
 - child state 中的计数只在复用同一 logical child 时继续使用，重新形成的新 child 按当前分解处理；
@@ -301,7 +301,7 @@ Advisor 不能解决：
 
 - 用户未作出的产品决策；
 - 权限不足；
-- 未授权的 write set 扩大；
+- 未授权的 scope 扩大；
 - 缺失凭据或外部环境；
 - 未批准的架构范围；
 - Root 的生产 Git authority。

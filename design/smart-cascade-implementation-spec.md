@@ -37,7 +37,7 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 9. As a Smart Cascade user, I want Autopilot to supervise rather than schedule production work, so that there is only one production coordinator.
 10. As Root, I want to read the complete queue after authorization, so that I can reason about the whole dependency graph.
 11. As Root, I want to compute the maximum safe ready frontier, so that every independent slice can begin without waiting for unrelated active work.
-12. As Root, I want dependency readiness, normalized write-set overlap, and shared mutable outputs to constrain dispatch, so that parallelism remains safe.
+12. As Root, I want dependency readiness and observed shared mutable resources to constrain dispatch, so that parallelism remains safe.
 13. As Root, I want every serialization decision to have a concrete reason, so that reduced concurrency is explainable rather than habitual.
 14. As Root, I want to start one native asynchronous isolated Leader task for each ready slice, so that production implementation is delegated without external Leader panes.
 15. As Root, I want each Leader business packet to carry the logical slice, attempt, base/candidate, scope, dependencies, checks, non-goals, and strict result schema, while runtime correlation/isolation/model fields remain in the selected adapter invocation, so that the core contract stays bounded and runner-neutral.
@@ -75,8 +75,8 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 47. As a Leader, I want to return one strict candidate/evidence settlement to Root, so that Root can freeze and verify one bounded result.
 48. As an Executor, I want one explicit child identity, attempt, base, postcondition, checks, and output schema in the core packet, while runtime correlation and isolation remain adapter concerns, so that my assignment is bounded without coupling core to OMP.
 49. As an Executor, I want to write only inside native OMP isolation, so that I cannot mutate my parent candidate directly.
-50. As an Executor, I want to touch only the allowed paths, so that write-set boundaries are mechanically reviewable.
-51. As an Executor, I want to run only the named focused checks, so that bounded child work does not turn into an unplanned full-project workflow.
+50. As an Executor, I want to write only inside my own isolated worktree, so that my boundary is enforced by isolation rather than by a declared path list.
+51. As an Executor, I want to run focused verification proving the named acceptance goals, so that bounded child work does not turn into an unplanned full-project workflow.
 52. As an Executor, I want to leave production commit and integration to Root, so that a child cannot bypass parent validation.
 53. As an Executor, I want to return strict settlement evidence without claiming the runtime-owned patch path, so that responsibilities remain truthful.
 54. As an Advisor, I want to review one exact frozen candidate, so that findings cannot drift across changing bytes.
@@ -144,7 +144,7 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 - The end-to-end native OMP acceptance smoke must prove Root → isolated Leader → isolated Executor; lifecycle/RPC/native progress identity and lineage; plain-prose Hub communication; strict business settlements from native rendered task envelopes; authoritative Executor and Leader retained patches from envelope merge summaries; no parent mutation before explicit apply; Leader serial assembly; Root verification; deliberate accepted apply; and native isolation cleanup.
 - A dedicated real-interruption recovery smoke must prove that interrupting Root preserves the child session and isolation artifact; Root resume rediscovers the child as parked without automatic execution; explicit continuation revives the original child identity; and revival appends to the same child session and uses the same isolation rather than spawning a replacement.
 - Recovery tests must distinguish recoverable and unrecoverable children. The unrecoverable path must report missing context and redispatch from the last verified candidate without claiming revival.
-- Queue validation tests remain deterministic script tests. They cover required fields, stable unique IDs, dependency validity, cycles, normalized write-set constraints, forbidden runtime and child-topology fields, and rejection rather than automatic repair.
+- Queue validation tests remain deterministic script tests. They cover required fields, stable unique IDs, dependency validity, cycles, forbidden runtime and child-topology fields, and rejection rather than automatic repair.
 - Rework counter tests remain deterministic script tests. They cover explicit slice/child command namespaces, initial zero behavior, atomic increment, persistence, the third/sixth/ninth escalation cadence, non-persistence of action fields, separation of Root and Leader-owned files, and malformed-state failure.
 - Bootstrap and authorization tests cover one immutable initialization receipt, one run-level authorization, exact queue/base identity, refusal to begin production during initialization, and retirement of per-slice release behavior.
 - Root scheduling tests use bounded fixtures to prove maximum-safe-frontier behavior: newly ready work starts immediately after its dependencies integrate, unrelated running Leaders do not block it, slices sharing a declared mutable resource serialize, and blockers freeze only affected chains.

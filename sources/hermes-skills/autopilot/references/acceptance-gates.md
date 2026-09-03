@@ -12,21 +12,21 @@ Verify every changed path and postcondition conforms to the slice's approved sco
 
 ## 3. Candidate freeze
 
-A candidate binds sorted changed paths, raw postimage bytes/file modes, base/inherited candidate, named checks, and stable identity. Root proves no active writer or current-byte check can mutate it. Agent settlement alone is insufficient.
+A candidate binds sorted changed paths, raw postimage bytes/file modes, base/inherited candidate, declared acceptance targets, and stable identity. Root proves no active writer or current-byte check can mutate it. Agent settlement alone is insufficient.
 
 The production owner preserves the retained patch artifact and its source isolation-attempt evidence until Root decides its disposition. OMP temporary isolation directories are cleaned only after patch capture and settlement.
 
-## 4. Focused checks
+## 4. Acceptance targets and verification
 
-Run and retain the exact bounded checks required by the slice/child packet. Unexpected failures produce precise REWORK or a blocker.
+The slice/child packet's `checks` are the lower bound of verification, not a prewritten command list. After implementation, the Leader/Executor chooses appropriate bounded verification methods, runs them, and reports the actual commands and results in the settlement `checks` field. Root verifies that the evidence credibly demonstrates each declared acceptance target. Unexpected failures produce precise REWORK or a blocker.
 
 ## 5. Advisor
 
-Advisor depth follows material risk. Read-only/mechanical changes may omit a separate Advisor when deterministic checks and Leader/Root inspection decide the result. Durable-data, lifecycle, authority, public interface, or operational changes normally require independent review.
+Advisor depth follows material risk. Read-only/mechanical changes may omit a separate Advisor when deterministic verification and Leader/Root inspection decide the result. Durable-data, lifecycle, authority, public interface, or operational changes normally require independent review.
 
 Advisor reviews one Root-frozen candidate. `PASS` is evidence only. Root decides acceptance.
 
-A closure review checks accepted finding closure, regression capability, local repair regressions, scope, and identity for the new candidate.
+A closure review verifies accepted finding closure, regression capability, local repair regressions, scope, and identity for the new candidate.
 
 ## 6. Smoke and cleanup
 
@@ -38,11 +38,11 @@ Review responsibility cohesion, interface depth, duplicated glue, durable machin
 
 ## 8. Digest revalidation
 
-After checks, review, smoke, or repair, recompute candidate identity. A changed postimage invalidates candidate-dependent evidence and requires a new freeze.
+After verification, review, smoke, or repair, recompute candidate identity. A changed postimage invalidates candidate-dependent evidence and requires a new freeze.
 
 ## 9. Architecture and authorization
 
-Completion requiring an unapproved runtime, ownership change, public interface, architecture, write-set expansion, live side effect, or direct-write purpose blocks before implementation. Root escalates external decisions through Autopilot.
+Completion requiring an unapproved runtime, ownership change, public interface, architecture, scope expansion, live side effect, or direct-write purpose blocks before implementation. Root escalates external decisions through Autopilot.
 
 ## 10. Root decision
 

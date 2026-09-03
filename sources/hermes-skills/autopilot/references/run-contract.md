@@ -11,7 +11,7 @@ verify project / queue / initial base / runner config
   → receive one explicit authorization for the complete approved queue
   → observe and supervise until Root reports run completion or a blocker
 ```
-Autopilot does not release one slice at a time. It uses the installed `herdr` skill for the optional external Root session and sends the complete approved queue boundary only after one explicit authorization. Root then owns the full DAG and ready-frontier scheduling; runtime candidates pass the normal patch, settlement, check, and integration gates.
+Autopilot does not release one slice at a time. It uses the installed `herdr` skill for the optional external Root session and sends the complete approved queue boundary only after one explicit authorization. Root then owns the full DAG and ready-frontier scheduling; runtime candidates pass the normal patch, settlement, acceptance-target, verification, and integration gates.
 
 ## Root production loop
 
@@ -45,9 +45,9 @@ Production facts owned by Root/Leader:
 - stable slice/child IDs and dependencies;
 - ordered attempt lineage;
 - retained artifact identity;
-- child write-set assignments;
+- child task-scope assignments and worktree confinement;
 - child settlement and assembly;
-- candidate freeze and checks;
+- candidate freeze and acceptance-target verification;
 - Advisor evidence;
 - PASS/REWORK/BLOCKED decisions;
 - commit/integration and dependency advancement;
@@ -60,7 +60,7 @@ A future durable seam must preserve this split. It must not make Autopilot a pro
 - Logical slice/child identity survives runner and isolation-attempt replacement.
 - Each attempt records its parent attempt/candidate and explicit base.
 - Native OMP task isolation retains a verified cumulative patch artifact while `apply=false` prevents automatic mutation of the parent checkout. Temporary isolation directories are cleaned by OMP only after patch capture/settlement.
-- `REWORK` rematerializes a new `attempt_id`, reapplies and verifies the last cumulative patch against an explicit base, then handles only the remaining findings. Base drift requires affected checks and an explicit Root rebase/serialization decision on conflict.
+- `REWORK` rematerializes a new `attempt_id`, reapplies and verifies the last cumulative patch against an explicit base, then handles only the remaining findings. Base drift requires affected acceptance targets to be reverified and an explicit Root rebase/serialization decision on conflict.
 - No fresh attempt may conceal an ambiguous dispatch, missing artifact, or unresolved candidate.
 
 ## Root→Leader and Leader→Executor runtime
@@ -69,7 +69,7 @@ Root and Leader use native asynchronous OMP tasks with `isolated=true`. The prof
 
 ## Candidate and acceptance
 
-A lifecycle event is a doorbell only. Root freezes one exact candidate, verifies real bytes/checks/scope, obtains Advisor evidence when risk requires it, and decides:
+A lifecycle event is a doorbell only. Root freezes one exact candidate, verifies real bytes, acceptance targets, reported verification, and scope, obtains Advisor evidence when risk requires it, and decides:
 
 ```text
 PASS     commit/integrate and advance dependencies

@@ -35,7 +35,7 @@ No separate Smart Cascade child-runtime interface, registry, lifecycle store, to
 
 ## Queue and production state
 
-`.smart-cascade/queue.toml` contains static intent and hard boundaries only: stable slice IDs, dependencies, scope, and named checks. It declares no file paths — each slice runs in its own worktree and the Leader assembles patches serially, so a write collision surfaces as rework at apply time rather than as a static conflict. It contains no child topology, runtime status, attempts, sessions, worktrees, candidates, decisions, or parallel flag; the Leader decides child decomposition at runtime.
+`.smart-cascade/queue.toml` contains static intent and hard boundaries only: stable slice IDs, dependencies, scope, and named acceptance goals. `checks` states what must hold once the slice is done, not which commands to run — a queue is written before the work exists, when the command set is not yet knowable, and some slices have no clean standalone test. The implementer chooses the verification and reports what it actually ran. It declares no file paths — each slice runs in its own worktree and the Leader assembles patches serially, so a write collision surfaces as rework at apply time rather than as a static conflict. It contains no child topology, runtime status, attempts, sessions, worktrees, candidates, decisions, or parallel flag; the Leader decides child decomposition at runtime.
 
 Root reads the complete approved queue, computes the maximum safe ready frontier, and recomputes it after every accepted integration. OMP lifecycle status is observation and control evidence; candidate freeze and production decisions remain Root judgments.
 

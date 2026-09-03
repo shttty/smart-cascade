@@ -91,10 +91,18 @@ OMP profile 必须支持 native task、Agent Hub 和 session resume。`./scripts
 id = "stable-slice-id"
 depends_on = []
 scope = "一个有明确完成条件的顶层目标"
-checks = ["python3 -m pytest"]
+checks = ["做完之后必须成立的、可验证的验收目标"]
 ```
 
-Queue 只表达用户目标和顶层边界，不含文件路径、child 列表、运行状态或 `parallel` 标志——每个 slice 在自己的 worktree 中执行，child 由 Leader 读代码后动态决定。写完先机械校验：
+Queue 只表达用户目标和顶层边界，不含文件路径、child 列表、运行状态或 `parallel` 标志——每个 slice 在自己的 worktree 中执行，child 由 Leader 读代码后动态决定。
+
+`checks` 写的是**验收目标**而不是命令清单。写 queue 时你还没做这份工作，不可能知道该跑哪条命令；但「做完之后什么必须成立」是定义 slice 时就清楚的。已经知道命令就直接写命令，不知道就写目标：
+
+```toml
+checks = ["新 auth 模块的单测全部通过", "现有测试套件无回归"]
+```
+
+具体跑什么由实施者在完成后自行决定，并在 settlement 中回报实际执行了什么。纯重构、文档、schema 迁移这类没有干净独立测试的 slice，也因此不必硬凑一条假命令。写完先机械校验：
 
 ```bash
 python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
@@ -108,18 +116,31 @@ python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/q
 npx skills add mattpocock/skills --skill=to-tickets
 ```
 
-在 agent 里运行 `/to-tickets`，产物落在 `.scratch/<feature-slug>/issues/<NN>-<slug>.md`（每个 ticket 一个文件）。字段映射：
+在 agent 里运行 `/to-tickets`，产物落在 `.scratch/<feature-slug>/issues/<NN>-<slug>.md`（每个 ticket 一个文件）。然后直接转换：
+
+```bash
+python3 ~/.omp/skills/smart-cascade/bootstrap/to-queue.py \
+  .scratch/<feature-slug>/issues -o .smart-cascade/queue.toml
+```
+
+映射是机械的，没有决策点：
 
 | to-tickets 产物 | queue.toml 字段 |
 | --- | --- |
-| 标题 slug（去掉 `NN-` 编号前缀） | `id` |
-| **Blocked by** 列出的 ticket | `depends_on` |
+| 标题 slug（自动剥掉 `NN-` 编号前缀） | `id` |
+| **Blocked by**（编号或标题都能解析） | `depends_on` |
 | **What to build** | `scope` |
-| 验收标准中可执行的部分 | `checks` |
+| 验收标准（Acceptance criteria） | `checks` |
 
-唯一需要手工处理的地方是 **`id` 不能带编号前缀**。ticket 文件名形如 `01-session-token-issuing.md`，但 `id` 必须是字母开头的 kebab-case，`01-session-token-issuing` 会被校验器拒绝，取 slug 部分即可。
+ticket 的验收标准本来就写成「什么必须成立」，正是 `checks` 需要的形式，逐字搬运即可，不必翻译成命令。本地文件模板和 tracker 的 `## What to build` 标题式模板都能识别。
 
-其余字段可直接照搬。queue 不声明文件路径——每个 slice 在自己的 worktree 里执行，写集冲突由 Leader 串行 apply patch 时暴露并走 REWORK，不需要提前预测每个 ticket 会碰哪些文件。
+转换器不猜：悬空的 **Blocked by** 引用、缺失的验收标准、重复 ID 和环形依赖都会报错退出，且**不写出半个 queue**。报错就去修 ticket，或者手写 queue。
+
+生成后仍需你过目 scope 措辞和依赖边，再走校验：
+
+```bash
+python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
+```
 
 然后建立明确的 Git checkpoint，在项目目录启动 OMP session，显式调用 `smart-cascade` Skill。Skill 会展示 queue、Git base、worktree snapshot 与 adapter receipt，并要求一次明确确认——**你确认之后，当前 session 才原地成为 Root**。
 

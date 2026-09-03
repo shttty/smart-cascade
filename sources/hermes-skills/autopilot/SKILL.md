@@ -87,7 +87,7 @@ question dialogs on their behalf instead of stopping the run. This overrides the
 Answer directly: tool-permission prompts, continue/confirm dialogs, and runner UI noise
 unrelated to production (telemetry, feedback, update nags, crash-report offers).
 
-Still escalate, never answer: changes to the approved queue, Git base, or write-set;
+Still escalate, never answer: changes to the approved queue, Git base, or approved scope;
 architecture or product-boundary decisions; anything with an external side effect
 (publishing, pushing, deleting production data); anything outside the approved scope.
 
@@ -130,7 +130,7 @@ A boundary violation permits supervision action, not takeover. Stop or steer Roo
 3. **Reconcile** — on uncertainty, inspect the exact Root/session identity and production evidence before steering or retrying. A timeout or lost response does not prove absence.
 4. **Intervene** only when Root is stalled, repeatedly inspecting without dispatching, violating the approved boundary, losing required runtime capability, or requesting an external decision.
 5. **Recover** the same run identity where safe. Do not replace logical slices merely because a runner or worktree attempt failed.
-6. **Report** final run completion only after Root supplies verifiable slice decisions, accepted commit/integration evidence, checks, cleanup dispositions, and remaining blockers/residual risk.
+6. **Report** final run completion only after Root supplies verifiable slice decisions, accepted commit/integration evidence, declared acceptance targets with credible reported verification, cleanup dispositions, and remaining blockers/residual risk.
 
 ## Working Root
 
@@ -144,14 +144,14 @@ Never call runner `done`, child `completed`, prompt wait success, inactivity, or
 
 ### Higher-tier verification before any commit
 
-Slice `checks` are the floor. Before the commit boundary, the project's own higher-tier verification entry points — end-to-end, smoke, integration, contract, and equivalents — must be enumerated from the project's manifest and every one whose preconditions the environment already satisfies must actually be run. A queue whose `checks` name only the unit-test command does not narrow this obligation, and a green unit-test suite never substitutes for an unrun tier.
+`checks` declare verifiable acceptance targets, not a predeclared command list; they may be natural-language outcomes or commands already known when the queue is written. The framework only passes these texts through. After implementation, the Leader/Executor determines the appropriate verification methods, runs them, and reports the actual commands and results in the settlement `checks` field. Slice `checks` are the floor. Before the commit boundary, the project's own higher-tier verification entry points — end-to-end, smoke, integration, contract, and equivalents — must be enumerated from the project's manifest and every one whose preconditions the environment already satisfies must actually be run. A queue whose `checks` name only the unit-test command does not narrow this obligation, and a green unit-test suite never substitutes for an unrun tier.
 
 Verification follows commit authority:
 
 - **Root commits** (the normal path) — Root runs these tiers itself and reports each as passed, failed, or not-runnable-with-reason. Autopilot verifies that this happened and that the reported results are real; a commit boundary reached without it is a boundary violation, so hold the boundary and steer Root rather than waving it through.
 - **A dedicated verifier agent cross-checks** — where the run wants an independent reading of those tiers, start a separate pane and dispatch a verifier agent to run them. Autopilot keeps its role: it dispatches, monitors, and reviews the artifacts read-only. It does not run project verification commands itself, and it never commits.
 
-A missing precondition is `not runnable` and must be named, never silently treated as passing. Failures at these tiers block the commit boundary exactly as a failed `check` does — never commit past them. Blocking the boundary is not stopping the run: route the failure back to Root as a `REWORK` finding and let it proceed.
+A missing precondition is `not runnable` and must be named, never silently treated as passing. Failures at these tiers block the commit boundary exactly as an unmet acceptance target does — never commit past them. Blocking the boundary is not stopping the run: route the failure back to Root as a `REWORK` finding and let it proceed.
 
 ### The verifier agent
 
@@ -165,7 +165,7 @@ When the verifier and Root disagree, or a tier comes back failing, the run does 
 
 Then hand the assessment back to Root as the finding for a `REWORK`, and say which reading the evidence favours and why. Root decides the disposition and may pull in an Advisor where the disagreement is substantive rather than mechanical. That assessment is input to Root's decision, never a second verdict: Autopilot does not re-run the tiers to break the tie, does not overturn a slice decision, and does not commit on the strength of its own reading.
 
-Escalate to the user only for what Root genuinely cannot absorb — architecture or product-boundary changes, scope beyond the approved write-set, or an external side effect. A failing tier, a disputed report, and a repeated `REWORK` are all ordinary run traffic; route them through Root and keep going.
+Escalate to the user only for what Root genuinely cannot absorb — architecture or product-boundary changes, scope beyond the approved queue, or an external side effect. A failing tier, a disputed report, and a repeated `REWORK` are all ordinary run traffic; route them through Root and keep going.
 
 ## Native OMP task boundary
 
@@ -188,7 +188,7 @@ Intervene or escalate for:
 - wrong project/Root/run identity or changed approved queue/base;
 - unresolved transport ambiguity;
 - Root inspection loops or loss of production progress;
-- architecture, product boundary, write-set, permission, or live-side-effect decisions outside the approved run;
+- architecture, product boundary, approved-scope, permission, or live-side-effect decisions outside the approved run;
 - unrecoverable runtime/plugin capability failure;
 - user direction.
 

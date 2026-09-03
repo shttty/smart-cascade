@@ -22,11 +22,11 @@ stable slice/child ID and attempt_id
 base or inherited candidate identity
 sorted changed paths
 raw postimage bytes and file modes
-named checks and their real results
+declared acceptance targets and their reported verification results
 ```
 
 Runner names, panes, sessions, transcripts, and prompt output are evidence, not candidate identity.
 
 ## Invalidation
 
-A changed postimage creates a new candidate identity and invalidates candidate-dependent review and checks. `REWORK` preserves the same logical slice/child identity while rematerializing a native OMP isolated attempt from the last verified cumulative patch. The new attempt applies and verifies that patch against an explicit base, then handles only the remaining findings. Temporary isolation is cleaned after patch capture; retained artifact and lineage remain until disposition.
+A changed postimage creates a new candidate identity and invalidates candidate-dependent review and acceptance-target evidence. `REWORK` preserves the same logical slice/child identity while rematerializing a native OMP isolated attempt from the last verified cumulative patch. The new attempt applies and verifies that patch against an explicit base, then handles only the remaining findings. Temporary isolation is cleaned after patch capture; retained artifact and lineage remain until disposition.
