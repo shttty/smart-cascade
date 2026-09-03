@@ -67,7 +67,7 @@ Root 的 `PASS` 只是对该 slice 的 contract、postcondition 和 checks 的�
 | | 用途 |
 |---|---|
 | `python3` ≥ 3.11 + PyYAML | 必需，Skill core 与 adapter |
-| [OMP](https://github.com/oh-my-pi/pi-coding-agent) | 必需，当前唯一可生产使用的 runner |
+| [OMP](https://github.com/can1357/oh-my-pi) | 必需，当前唯一可生产使用的 runner |
 | `bun` | 可选，仅原生 OMP smoke 需要 |
 
 OMP profile 必须支持 native task、Agent Hub 和 session resume。`./scripts/deploy.sh verify` 会逐项检查并告诉你缺什么。
@@ -100,6 +100,31 @@ Queue 只表达用户目标和顶层边界，不含 child 列表、运行状态�
 ```bash
 python3 ~/.omp/skills/smart-cascade/bootstrap/validate-queue.py .smart-cascade/queue.toml
 ```
+
+### 用 to-tickets 的产物生成 queue
+
+如果需求还没想清楚怎么切，推荐先用 Matt Pocock 的 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) skill 拆一轮，再把它的产物映射成 queue。它产出的 tracer bullet 切法和 **Blocked by** 依赖图正好对应 Smart Cascade 的 slice 与 `depends_on`，省掉自己凭空设计切分粒度。
+
+```bash
+npx skills add mattpocock/skills --skill=to-tickets
+```
+
+在 agent 里运行 `/to-tickets`，产物落在 `.scratch/<feature-slug>/issues/<NN>-<slug>.md`（每个 ticket 一个文件）。字段映射：
+
+| to-tickets 产物 | queue.toml 字段 |
+| --- | --- |
+| 标题 slug（去掉 `NN-` 编号前缀） | `id` |
+| **Blocked by** 列出的 ticket | `depends_on` |
+| **What to build** | `scope` |
+| 验收标准中可执行的部分 | `checks` |
+| —— | `write_set`（需自行补充） |
+
+两个必须手工处理的地方：
+
+- **`id` 不能带编号前缀。** ticket 文件名形如 `01-session-token-issuing.md`，但 `id` 必须是字母开头的 kebab-case，`01-session-token-issuing` 会被校验器拒绝。取 slug 部分即可。
+- **`write_set` 必须自己补。** `to-tickets` 刻意不写具体文件路径（路径会过时），而 Smart Cascade 用 `write_set` 计算 ready frontier 与写集冲突，缺了它队列不合法。按每个 ticket 实际触及的目录填。
+
+补完再跑一次校验。若多个 slice 的 `write_set` 有重叠，校验器会给出 `serialization_required` notice，指出哪些 slice 因写集冲突必须串行——这是 `depends_on` 之外的第二层约束，不必手工改成依赖，Root 计算 frontier 时会自行处理。
 
 然后建立明确的 Git checkpoint，在项目目录启动 OMP session，显式调用 `smart-cascade` Skill。Skill 会展示 queue、Git base、worktree snapshot 与 adapter receipt，并要求一次明确确认——**你确认之后，当前 session 才原地成为 Root**。
 
