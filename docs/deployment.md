@@ -5,7 +5,7 @@ Smart Cascade 分成三个独立安装层：
 ```text
 ~/.omp/skills/smart-cascade/                    Skill core 与选中的 runners/<name>/
 ~/.omp/profiles/<name>/agent/                  OMP runner 专属 profile 配置与 subagent 定义
-~/.hermes/skills/autonomous-ai-agents/autopilot/  可选外部监督文档
+~/.hermes/skills/autonomous-ai-agents/autopilot/  可选外部监督 Skill（文档 + 监督脚本）
 <project>/.smart-cascade/                      queue、override 和运行状态
 ```
 
@@ -75,7 +75,7 @@ models.yml  *.db  sessions/  terminal-sessions/  extensions/  logs/
 ./scripts/deploy.sh autopilot
 ```
 
-安装可选 Hermes 外部监督文档。Autopilot 只包含 `SKILL.md` 与 references，通过已安装的 `herdr` skill 完成 Root 启动、初始化、控制和观察；它不拥有生产调度或 Git。
+安装可选的 Hermes 外部监督 Skill。Autopilot 包含 `SKILL.md`、references 与 `scripts/`（`agent-watch.sh` 守望、`agent-dispatch.sh` 带送达证明的派发、`config.sh` 共享配置读取），通过已安装的 `herdr` skill 完成 Root 启动、初始化、控制和观察；它不拥有生产调度或 Git。
 
 Smart Cascade adapter 只提供 admission `check`。运行时正确性由 Root 对 settlement、patch、checks 和 integration 的 candidate 验收保证。
 

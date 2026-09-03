@@ -124,7 +124,7 @@ Smart Cascade 不会自动创建或修复 queue，不会启动另一个 session�
 - `runners/omp/roles/*.md`：OMP 格式的 subagent 定义；`model` alias、`thinkingLevel`、`spawns` 等不是 Claude Code schema。
 - `runners/omp/test-adapter.py`：OMP adapter/projection 的 deterministic tests。
 
-Autopilot 是纯文档的可选外部监督 Skill，通过已安装的 `herdr` skill 完成 Root 启动与控制。Smart Cascade 的直接路径不需要 Autopilot 或 Herdr；运行时正确性由 Root 的 candidate 验收保证。
+Autopilot 是可选的外部监督 Skill，包含监督流程文档与配套监督脚本，通过已安装的 `herdr` skill 完成 Root 启动与控制。Smart Cascade 的直接路径不需要 Autopilot 或 Herdr；运行时正确性由 Root 的 candidate 验收保证。
 
 Skill 相对自身目录解析代码、core、角色和默认配置，可以检查任意外部项目。
 
@@ -143,7 +143,13 @@ task:
 
 ### Autopilot
 
-`sources/hermes-skills/autopilot/` 是可选外部监督控制面，只有 Skill 文档与 references。它不包含 Smart Cascade runner 配置或执行脚本，不释放 slice、不调度 production children、不决定 acceptance、不拥有 Git。
+`sources/hermes-skills/autopilot/` 是可选外部监督控制面，包含 Skill 文档、references，以及监督期使用的脚本：
+
+- `scripts/agent-watch.sh`：Herdr agent 守望器，`heartbeat` 睡一个周期后采集产出指纹并与上轮比对，`guard` 阻塞等待落定状态，`status` 出一次性快照，`selftest` 只验数据源可用性。session / 仓库 / agent 名全部走环境变量或 flag，没有硬编码。
+- `scripts/agent-dispatch.sh`：带送达证明的 prompt 派发。每次派发生成唯一 marker 随 packet 送出，再到 runner session transcript 里数它——0 次为确未送达可安全重发，1 次为已送达则不论 CLI 报什么错都不得重发，2 次以上为已双写。因为 `agent_prompt_stalled` 与 timeout 都可能发生在 prompt 已写入 session 之后，失败输出本身不能证明未送达。
+- `scripts/config.sh`：被上面两个脚本 source，让默认值统一来自 `autopilot-config.yaml`；配置缺失时回落到兜底值，环境变量优先级更高。
+
+这些脚本只服务于外部监督：它不包含 Smart Cascade runner 配置，不释放 slice、不调度 production children、不决定 acceptance、不拥有 Git。
 
 ## 项目级状态
 

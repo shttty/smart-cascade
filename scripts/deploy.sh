@@ -36,7 +36,7 @@ commands:
   verify       check common dependencies and selected-runner installation drift
   skill        install/update the Skill core and selected runner directories
   profile      install/update the selected OMP profile's roles and config.yml
-  autopilot    install/update the optional Hermes Autopilot documentation skill
+  autopilot    install/update the optional Hermes Autopilot supervision skill
   all          install skill, the selected OMP profile when omp is selected, then autopilot
 
 options:
@@ -292,7 +292,7 @@ cmd_omp_profile() {
 }
 
 cmd_autopilot() {
-  copy_tree "$AUTOPILOT_SOURCE" "$HERMES_SKILLS_ROOT/$AUTOPILOT_RELATIVE" "Autopilot documentation skill"
+  copy_tree "$AUTOPILOT_SOURCE" "$HERMES_SKILLS_ROOT/$AUTOPILOT_RELATIVE" "Autopilot supervision skill"
 }
 
 command=${1:-}
