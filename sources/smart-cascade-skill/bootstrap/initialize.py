@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
 import sys
@@ -20,10 +19,6 @@ class InitializationError(RuntimeError):
 
 def fail(message: str) -> NoReturn:
     raise InitializationError(message)
-
-
-def digest(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def load_json(path: Path, label: str) -> dict[str, Any]:
@@ -106,30 +101,9 @@ def main() -> int:
             path = state_root / relative
             if path.exists() and not path.is_dir():
                 fail(f"core state path is not a directory: {relative}")
-    interface_path = bootstrap / "runner-interface.json"
-    interface = load_json(interface_path, "runner interface")
-    if set(interface) != {"schema_version", "kind", "operations", "runtime_control", "normalized_result"}:
-        fail("runner interface must be one closed contract object")
-    if interface.get("schema_version") != 1 or interface.get("kind") != "smart-cascade-runner-interface":
-        fail("runner interface identity is invalid")
-    operations = interface.get("operations")
-    if not isinstance(operations, list) or not {"check", "normalize"} <= set(operations) or any(not isinstance(item, str) or not item for item in operations) or len(operations) != len(set(operations)) or interface.get("runtime_control") != "adapter_native":
-        fail("runner interface must provide check and normalize through adapter-native control")
-    normalized = interface.get("normalized_result")
-    if not isinstance(normalized, dict) or set(normalized) != {"schema_version", "statuses", "artifact_kinds"} or normalized.get("schema_version") != 1:
-        fail("runner interface normalized result shape is invalid")
-    statuses = normalized.get("statuses")
-    normalized_artifacts = normalized.get("artifact_kinds")
-    if not isinstance(statuses, list) or not {"completed", "failed"} <= set(statuses) or any(not isinstance(item, str) or not item for item in statuses) or len(statuses) != len(set(statuses)):
-        fail("runner interface normalized result statuses are invalid")
-    if not isinstance(normalized_artifacts, list) or "git_patch" not in normalized_artifacts or any(not isinstance(item, str) or not item for item in normalized_artifacts):
-        fail("runner interface normalized result artifacts are invalid")
     print(json.dumps({
         "status": "CORE_READY",
         "project_root": str(project_root),
-        "manifest_digest": digest(manifest_path),
-        "queue_digest": digest(queue_path),
-        "runner_interface_digest": digest(interface_path),
         "queue_validation": queue_result,
         "created": created,
     }, ensure_ascii=False, separators=(",", ":")))

@@ -17,7 +17,6 @@ Read before controlling a run:
 - [`references/state-machine.md`](references/state-machine.md)
 - [`references/queue-validation.md`](references/queue-validation.md)
 - [`references/state-validation.md`](references/state-validation.md)
-- [`references/digests.md`](references/digests.md)
 - [`references/acceptance-gates.md`](references/acceptance-gates.md)
 - [`references/hierarchical-lanes.md`](references/hierarchical-lanes.md)
 - [`references/smart-cascade-flow.md`](references/smart-cascade-flow.md)
@@ -28,7 +27,7 @@ Before any Herdr command, load the installed `herdr` skill and follow its curren
 
 ## Run bootstrap
 
-1. Verify the exact project, approved `.smart-cascade/queue.toml`, queue digest, selected Smart Cascade Skill runner config, Root identity, and initial Git base. The project root comes from the user's invocation; `project` in [`autopilot-config.yaml`](autopilot-config.yaml) supplies the profile Root is initialized under, the runner kind, and the queue path within that project.
+1. Verify the exact project, approved `.smart-cascade/queue.toml`, selected Smart Cascade Skill runner config, Root identity, and initial Git base. The project root comes from the user's invocation; `project` in [`autopilot-config.yaml`](autopilot-config.yaml) supplies the profile Root is initialized under, the runner kind, and the queue path within that project.
 2. When the user chooses external supervision, use the installed `herdr` skill to create and control the explicitly owned Root session, then initialize Root with the installed Smart Cascade Skill contract.
 3. Run the installed runner adapter's `check` operation, passing `project.profile` as `--profile` when it is set, and retain its exact `ADAPTER_READY` receipt. The adapter resolves and persists the profile selection into the project's own `.smart-cascade/override.yaml`; it stays the single source of truth for which profile a project runs under, so never write that file directly and never launch under a profile the receipt did not confirm. After the user's one explicit run-level authorization, send the complete approved queue boundary to Root through the installed `herdr` skill.
 4. Arm read-only progress observation and immediate Root/subagent lifecycle or blocker doorbells. [`scripts/agent-watch.sh`](scripts/agent-watch.sh) is the reference watcher, with four modes: `selftest` (verify every observation source), `status` (one snapshot), `heartbeat` (sleep one interval, then compare an output fingerprint against the previous round), and `guard` (block on `herdr agent wait` and exit on any settled or anomalous state). It hardcodes no session, pane, agent name, or repository: pass `--session/--repo/--minutes`, or let it discover the busiest agent-bearing pane itself. Both `heartbeat` and `guard` exit on wake, so run them as ordinary notifying background jobs and let exit notification return control to the supervisor — never as a detached service that can only message the user.
@@ -39,23 +38,9 @@ Before any Herdr command, load the installed `herdr` skill and follow its curren
    - An empty pane read is *observation unavailable*, never *no activity*. Report it as a defect and keep watching.
 5. Record bootstrap/control evidence without creating a mutable production queue. Direct user invocation through the `smart-cascade` Skill uses the current OMP session as Root and does not require Autopilot or Herdr.
 
-## Proving a dispatch landed
+## Dispatching
 
-A runner CLI's failure output does not prove a prompt was not delivered. `agent_prompt_stalled` and `timeout` both occur *after* the text has already entered the session, so a retry on that evidence double-writes the instruction. Only the runner's own transcript settles it.
-
-[`scripts/agent-dispatch.sh`](scripts/agent-dispatch.sh) makes that check mechanical. `send` appends a unique marker to the packet, submits it, then counts the marker in the runner's session transcript and reports on the count alone — never on the CLI exit code. `verify --marker` re-runs the same count later; `list` shows retained dispatches. Each send retains the packet, its digest, the resolved target, and the verification result under a per-marker directory as evidence.
-
-The counts map to exactly three dispositions, and no other evidence overrides them:
-
-```text
-0   not delivered      safe to resend the unchanged packet
-1   delivered          never resend, whatever the CLI reported
-2+  double-written     do not resend; tell Root it arrived twice
-```
-
-A double write is not a stop. The duplicate sits in Root's own transcript, so tell Root the instruction landed twice and to treat it as one, and let the run continue. Escalate only if Root has already acted on both copies in a way that needs a decision beyond the approved scope.
-
-A marker that cannot be counted at all is not a zero. Leave the dispatch unresolved, hold that dependency chain, and escalate rather than guessing.
+A runner CLI's failure output does not prove a prompt was not delivered. `agent_prompt_stalled` and `timeout` both occur *after* the text has already entered the session, so resending on that evidence double-writes the instruction. Read the pane instead: the prompt is visible there. If it arrived, do not resend whatever the CLI reported; if it plainly did not, resend the unchanged text; if it appears twice, tell Root it landed twice and to treat it as one, and let the run continue.
 
 Dispatch only to the exact resolved pane, and never send new work to an agent already `working`.
 
@@ -121,7 +106,7 @@ A boundary violation permits supervision action, not takeover. Stop or steer Roo
 
 ## Supervision loop
 
-1. **Identify** — verify project, run authorization, queue/runner digests, Root identity, initial base, and current Herdr/OMP evidence.
+1. **Identify** — verify project, run authorization, the approved queue and runner config, Root identity, initial base, and current Herdr/OMP evidence.
 2. **Observe** — inspect real lifecycle/progress evidence. Periodic progress is read-only; completion/blocker events are doorbells only.
 3. **Reconcile** — on uncertainty, inspect the exact Root/session identity and production evidence before steering or retrying. A timeout or lost response does not prove absence.
 4. **Intervene** only when Root is stalled, repeatedly inspecting without dispatching, violating the approved boundary, losing required runtime capability, or requesting an external decision.
@@ -130,7 +115,7 @@ A boundary violation permits supervision action, not takeover. Stop or steer Roo
 
 ## Working Root
 
-`working` is activity evidence, not a DAG lock. Normal Root scheduling proceeds inside the Root session. Low-volume supervisory input may use the selected runner's steering or follow-up mechanism; a settled Root may receive a normal prompt. Bind meaningful interventions to a stable control identity so duplicates can be recognized. Do not add a durable inbox solely for expected low concurrency.
+`working` is activity evidence, not a DAG lock. Normal Root scheduling proceeds inside the Root session. Low-volume supervisory input may use the selected runner's steering or follow-up mechanism; a settled Root may receive a normal prompt.
 
 ## Candidate and Git evidence
 
@@ -153,7 +138,7 @@ A missing precondition is `not runnable` and must be named, never silently treat
 
 The verifier exists because a runner grading its own homework is weak evidence — the same misreading that let a tier go unrun tends to survive into the report about it. Giving verification its own pane and its own agent means the tiers get executed by something that did not write the code and has no stake in the slice passing.
 
-Start it in a pane of its own and dispatch through [`scripts/agent-dispatch.sh`](scripts/agent-dispatch.sh), the same as any other dispatch — an unproven dispatch is unproven regardless of who the target is. Which agent starts, and how it launches, come from `verifier` in [`autopilot-config.yaml`](autopilot-config.yaml); do not hardcode a runner, model, or profile here. `verifier.enabled: false` skips the cross-check and leaves Root's own reporting as the only reading. Point it at the worktree under verification and require it to report every higher-tier entry point as passed, failed, or not-runnable-with-reason, with the command and its real output retained.
+Start it in a pane of its own and dispatch to it like any other target. Which agent starts, and how it launches, come from `verifier` in [`autopilot-config.yaml`](autopilot-config.yaml); do not hardcode a runner, model, or profile here. `verifier.enabled: false` skips the cross-check and leaves Root's own reporting as the only reading. Point it at the worktree under verification and require it to report every higher-tier entry point as passed, failed, or not-runnable-with-reason, with the command and its real output retained.
 
 Its verdict is evidence for the commit boundary, not a slice decision. `PASS`/`REWORK` stays with Root.
 
@@ -175,7 +160,7 @@ For `REWORK`, Root or Leader rematerializes a new attempt from an explicit base,
 
 Herdr supervises the Root process and provides external observation only. It does not replace native OMP task dispatch, Hub communication, patch retention, or production authority.
 
-The executable Root seams belong to the installed Smart Cascade Skill: `bootstrap/frontier.py` computes a bounded maximum-safe frontier without persisting topology; `bootstrap/contracts.py` validates closed business packets and runner-neutral results; `bootstrap/state.py` atomically owns only slice/child rework counters. Runner-native evidence is validated and normalized by the selected adapter. Autopilot may inspect receipts but never invokes these seams to schedule or accept production work.
+The executable Root seams belong to the installed Smart Cascade Skill: `bootstrap/frontier.py` computes a bounded maximum-safe frontier without persisting topology; `bootstrap/state.py` atomically owns only slice/child rework counters. Root reads child results as the runner delivers them and verifies the work itself against the real diff and the acceptance targets. Autopilot may inspect receipts but never invokes these seams to schedule or accept production work.
 
 ## Stop and escalation conditions
 

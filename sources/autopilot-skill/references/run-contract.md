@@ -35,7 +35,7 @@ Control evidence owned by Autopilot:
 
 - Herdr/Root startup identity;
 - initialization and environment receipts;
-- approved queue/config/base digests;
+- the approved queue, runner config, and initial Git base;
 - progress observations and lifecycle/blocker doorbells;
 - supervision interventions and recovery actions;
 - final run-level verification/report.

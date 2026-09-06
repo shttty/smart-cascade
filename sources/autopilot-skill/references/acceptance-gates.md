@@ -36,9 +36,9 @@ Run approved real-behavior smoke where required and record setup, observation, a
 
 Review responsibility cohesion, interface depth, duplicated glue, durable machinery, fixture tax, speculative scope, and standard alternatives. Record concrete material findings only.
 
-## 8. Digest revalidation
+## 8. Revalidation after change
 
-After verification, review, smoke, or repair, recompute candidate identity. A changed postimage invalidates candidate-dependent evidence and requires a new freeze.
+If verification, review, smoke, or repair changes the candidate's content, the evidence gathered against the previous content no longer applies. Re-verify against what the candidate now is.
 
 ## 9. Architecture and authorization
 

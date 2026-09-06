@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # config.sh — 读取 autopilot-config.yaml 的单个标量值
 #
-# 被 agent-watch.sh / agent-dispatch.sh source。让两个脚本的默认值来自
-# 同一份配置，而不是各写各的字面量。
+# 被 agent-watch.sh source。让脚本默认值来自同一份配置，
+# 而不是各写各的字面量。
 #
 #   ap_cfg <点路径> <兜底值>
 #

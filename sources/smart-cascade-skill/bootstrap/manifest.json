@@ -6,15 +6,12 @@
     "init-environment.sh",
     "manifest.json",
     "root-init.md",
-    "runner-interface.json",
     "validate-queue.py",
     "to-queue.py",
     "frontier.py",
-    "contracts.py",
     "state.py"
   ],
   "state_directories": [
-    "control/dispatches",
     "control/receipts",
     "state"
   ],
