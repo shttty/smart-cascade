@@ -2,7 +2,7 @@
 
 ## Sources of truth
 1. Approved static queue: `.smart-cascade/queue.toml`.
-2. Bootstrap contract: the installed Smart Cascade Skill's `bootstrap/root-init.md` and `bootstrap/manifest.json`.
+2. Bootstrap contract: the installed Smart Cascade Skill's `SKILL.md` and `bootstrap/manifest.json`.
 3. Selected OMP role definitions and profile isolation policy.
 4. Autopilot control evidence and Root/Leader production facts; persistence is limited to receipts, candidate artifacts, Git facts, and minimal slice/child rework counters.
 

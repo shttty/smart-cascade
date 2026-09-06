@@ -5,7 +5,6 @@
     "initialize.py",
     "init-environment.sh",
     "manifest.json",
-    "root-init.md",
     "validate-queue.py",
     "to-queue.py",
     "frontier.py",

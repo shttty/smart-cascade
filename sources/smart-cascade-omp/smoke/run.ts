@@ -189,7 +189,7 @@ function profileAgents(): Record<string, string> {
 }
 
 function rootPrompt(leaderPacket: Record<string, unknown>, executorPacket: Record<string, unknown>): string {
-	const rootContract = readFileSync(join(SKILL_ROOT, "bootstrap", "root-init.md"), "utf8");
+	const rootContract = readFileSync(join(SKILL_ROOT, "SKILL.md"), "utf8");
 	return `${rootContract}\n\nSmoke authorization: initialization and explicit run authorization are already complete for this disposable fixture; do not emit the initialization receipt. Execute the production loop now. Keep patch copies, receipts, and all other control artifacts outside the repository; the retained candidate must change only ${FIXTURE}. The admitted profile requires the native batch task form with context plus one tasks[] item. Dispatch one Leader with this assignment: ${JSON.stringify(leaderPacket)}. Use agent smart-cascade-leader, name smoke-leader-id, isolated=true, schemaMode=strict, outputSchema ${JSON.stringify(leaderPacket.result_schema)}. The Leader must give its Executor this assignment ${JSON.stringify(executorPacket)} in its own batch task call with outputSchema ${JSON.stringify(executorPacket.result_schema)}. Wait for settlement, call Hub send to smoke-leader-id with ${HUB_MESSAGE} slice smoke-slice attempt leader-attempt-1 nonce smoke-nonce, verify the candidate against the real diff, prove the Root parent is unchanged, then stop before applying it and report {"status":"READY_TO_APPLY","slice_id":"smoke-slice","attempt_id":"leader-attempt-1","committed":false}. Never apply or commit; the smoke harness will deliberately apply the verified retained Leader patch after independently proving pre-apply state.`;
 }
 

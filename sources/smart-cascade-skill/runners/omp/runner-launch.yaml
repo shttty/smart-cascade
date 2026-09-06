@@ -21,9 +21,7 @@ root:
   effort: high
 
 dispatch_contract:
-  # process/flow references are relative to the Skill root; roles are relative to this runner directory.
-  process_reference: bootstrap/root-init.md
-  flow_reference: SKILL.md
+  # role paths are relative to this runner directory.
   roles:
     leader: roles/smart-cascade-leader.md
     advisor: roles/smart-cascade-advisor.md

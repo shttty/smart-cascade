@@ -19,7 +19,7 @@ Use only on explicit user invocation. Install this self-contained Skill through 
 
 `ponytail` is optional. Use it when the target session discovers it; otherwise skip it and continue without installing it or blocking admission/dispatch. OMP role `autoloadSkills` resolves only discovered skills and skips missing names.
 
-1. Read the approved project flow/spec and `<project>/.smart-cascade/queue.toml`, then `bootstrap/root-init.md`, `runners/omp/roles/*.md`, and `runners/omp/runner-launch.yaml`.
+1. Read the approved project flow/spec and `<project>/.smart-cascade/queue.toml`, then `runners/omp/roles/*.md` and `runners/omp/runner-launch.yaml`.
 2. Run `SMART_CASCADE_PROJECT_ROOT=<project> bash bootstrap/init-environment.sh` and require `CORE_READY`. This preflight is read-only.
 3. Check that the OMP installation can host the Smart Cascade roles:
 
@@ -37,26 +37,68 @@ python3 runners/omp/adapter.py check \
 
 After the explicit yes and before production dispatch, run `SMART_CASCADE_PROJECT_ROOT=<project> SMART_CASCADE_CREATE_STATE=1 bash bootstrap/init-environment.sh` once to create the ignored receipt/counter directories. Recheck that the approved queue and base have not drifted.
 
-## Production
+## Root authority
 
-After confirmation, follow the core Root workflow in `bootstrap/root-init.md`.
+After that confirmation you are the Smart Cascade Root coordinator and sole production decision and Git authority for this run. Read the complete approved `.smart-cascade/queue.toml` and the exact initial Git base. Root owns:
+
+- complete-DAG scheduling and the maximum safe ready frontier;
+- stable logical slice, child, and ordered attempt identity;
+- candidate acceptance;
+- slice `PASS`, `REWORK`, and `BLOCKED` decisions;
+- accepted patch application, verification, commit/integration, dependency advancement, and cleanup;
+- timestamped production facts and recovery outcomes.
+
+Root coordinates product work. Children execute attempts and return results; they never decide acceptance or perform production Git integration. For every safely ready top-level slice, Root starts one isolated Leader. Root never substitutes for ordinary Leader or Executor product implementation; even a direct Leader execution path remains inside that isolated Leader attempt.
+
+## Delegation
 
 Delegation, background execution, inter-agent communication, child lifecycle, and result delivery belong to the host runner. Under OMP that means native isolated `task` dispatch and Hub messaging; use them directly.
 
-Writing work runs in the runner's isolated workspace with the profile's patch-retention policy, so candidate changes never enter the production worktree on their own. Root applies an accepted candidate deliberately.
+Describe each assignment in whatever form the runner carries naturally. An assignment must convey:
 
-Verify the work rather than the paperwork. Read the child's result, then inspect the real diff against the exact base and assigned scope, and run the verification the acceptance targets call for. A child's claim of success is not acceptance.
+- the slice or child identity and its ordered attempt;
+- the exact Git base, plus the last verified cumulative patch when continuing one;
+- the task scope, expected postcondition, and explicit non-goals;
+- the acceptance targets the work must satisfy;
+- for `REWORK`, only the remaining checklist.
+
+Writing work runs in the runner's isolated workspace with the profile's patch-retention policy, so candidate changes never enter the production worktree on their own.
+
+## Incremental scheduling
+
+Use `bootstrap/frontier.py` or equivalent direct reasoning to select every safely ready slice. Recompute after each accepted integration. Dependencies, active writers, and observed shared mutable resources constrain readiness. Record a concrete serialization reason whenever the frontier is narrower than dependency readiness. Do not persist live topology or add a second queue.
+
+## Accepting a candidate
+
+Read the child's result as the runner delivers it. Then verify the work itself, using ordinary Git and project tooling:
+
+1. Inspect the actual changes — the diff, the changed paths, and the resulting bytes — against the exact base and the assigned scope.
+2. Confirm each acceptance target is genuinely met, running the verification the target calls for rather than trusting a claim that it passed.
+3. Treat a child's report of success as a claim about work, not evidence of it. A completion notice, a progress event, or a message is never acceptance by itself.
+4. Where changes were captured but the attempt did not succeed, keep the artifact as evidence and never promote it to a candidate.
+
+Apply an accepted candidate deliberately, as Root, into the production worktree.
+
+## Decisions
+
+- `PASS`: apply the verified candidate, rerun the verification the acceptance targets require, commit/integrate as Root, emit a timestamped receipt, advance dependencies, and recompute the frontier.
+- `REWORK`: increment the appropriate atomic counter in `bootstrap/state.py`, retain the logical identity, create the next ordered attempt from the exact base plus last verified cumulative patch, preserve predecessor evidence, and send only the remaining checklist.
+- `BLOCKED`: preserve the exact reason and any surviving artifact, then continue independent ready work.
+
+A later explicit request may reopen an integrated slice. Keep its stable `slice_id`, increment the Root-owned rework counter, use the integrated commit as the new base and last verified candidate, preserve prior accepted evidence, and create the next ordered attempt. Reopening never silently undoes an accepted commit.
 
 ## Recovery
 
-On Root resume, use the runner's own facilities to observe children that were already running. Resume alone must not continue them. Continue an existing child explicitly where the runner supports it; otherwise report the lost context honestly and redispatch from the last verified candidate. Do not persist live topology.
+On Root resume, use the runner's own facilities to observe children that were already running. Resume alone must not continue them. Continue an existing child explicitly where the runner supports it; otherwise report the lost context honestly and redispatch from the last verified candidate. Never claim unmaterialized changes survived. Do not persist live topology.
 
-## Decisions and final report
+The only persistent Smart Cascade state is static queue/configuration, receipts, candidate artifacts, Git facts, and minimal slice/child rework counters. No child registry, lifecycle database, lease, fencing, tombstone, daemon, durable mailbox, plugin runtime, or independent async queue.
 
-Root alone decides `PASS`, `REWORK`, or `BLOCKED`, applies accepted patches, performs production Git integration, advances dependencies, and reports exact evidence, cleanup, recovery, blockers, and residual risks. A child's completion alone is not completion.
+## Verification and the commit boundary
 
 Slice `checks` are acceptance targets, not a prewritten command list. They state what must be true when the slice is complete and may be natural-language goals or commands already known at queue time. The implementing Leader or Executor chooses how to verify those targets after the work, and reports the commands actually run. Slice `checks` are the floor, not the ceiling: whoever holds commit authority must, before the commit boundary, enumerate the project's own higher-tier verification entry points — end-to-end, smoke, integration, contract, and equivalents — and run every one whose preconditions the current environment already satisfies. Discover them from the project's own manifest rather than assuming a fixed command set; checks that name only the unit-test goal do not narrow this obligation.
 
 Report each such entry point as passed, failed, or not-runnable-with-reason. A missing precondition (absent service, unset environment variable) is `not runnable` and must be named; it is never silently equivalent to passing, and a green unit-test suite never stands in for an unrun tier. Failures at these tiers block the commit boundary exactly as an unmet acceptance target does.
 
 After the final accepted candidate passes Root verification, present exactly one commit boundary before production Git integration. Offer committing the accepted candidate as the recommended default and retaining it as an uncommitted worktree candidate as the alternative. Record in the run receipt which option was taken and whether the user chose it explicitly or the runner auto-selected the default. Never present this boundary before verification, and never commit a candidate that failed verification.
+
+Root reports exact evidence, cleanup, recovery, blockers, and residual risks. A child's completion alone is not completion.
