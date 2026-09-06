@@ -69,39 +69,19 @@ flowchart TD
 
 ## 安装
 
-### 1. 安装依赖
+把[安装与配置文档](docs/deployment.md)交给你的 agent，让它检查环境、安装 Smart Cascade，并在确认模型分配后配置已有的 OMP profile。
 
-需要：
+需要 Python 3.11+、PyYAML 和 [OMP](https://github.com/can1357/oh-my-pi) 18.0+，且 OMP 已有至少一个可用模型。目前只提供 OMP runner；安装可以由其他兼容 agent 执行。
 
-- Python 3.11+
-- PyYAML
-- [OMP](https://github.com/can1357/oh-my-pi) 18.0+
+安装使用 `npx skills`，只安装 `smart-cascade`，不需要独立初始化 Skill。`ponytail` 是可选项：已有则使用，没有就跳过，不自动补装、不阻塞运行。Autopilot 同样可选。
 
-目前只提供 OMP runner；Codex 和 Claude Code runner 计划后续加入。
-
-先在 OMP 中配置好可用的 provider 和模型。仓库内的默认 profile 带有示例模型映射；安装前，把以下两处的 Root、Leader、Executor 和 Advisor 模型改成你实际可用的 `provider/model`，并保持对应项一致：
-
-- [`sources/smart-cascade-omp/agent/config.yml`](sources/smart-cascade-omp/agent/config.yml) 中的 `modelRoles`
-- [`sources/smart-cascade-skill/runners/omp/runner-launch.yaml`](sources/smart-cascade-skill/runners/omp/runner-launch.yaml) 中的 `root.model` 与 `roles.*.model`
-
-### 2. 安装 Smart Cascade
-
-```bash
-git clone https://github.com/shttty/smart-cascade.git
-cd smart-cascade
-
-./scripts/deploy.sh skill --runner omp
-./scripts/deploy.sh profile --runner omp --profile smart-cascade-omp
-./scripts/deploy.sh verify --runner omp --profile smart-cascade-omp
-```
-
-`verify` 输出 `RESULT: required dependencies satisfied` 即安装完成。
+初始化时你需要指定一个 OMP profile 作为 Smart Cascade 的安装位置，默认是 `smart-cascade-omp`。它是一个独立的 subagent profile，承载六个角色和 Smart Cascade 需要的 async/batch/isolation 设置，不会影响你日常使用的 profile。想用别的名字或复用已有 profile 都可以，告诉执行安装的 agent 即可；下面的命令和文档里的 `smart-cascade-omp` 换成你实际选定的名字。
 
 ## 使用
 
 先用 [`to-tickets`](https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets) 把需求整理成 tickets，并为项目建立一个干净的 Git checkpoint。
 
-在项目目录启动 Smart Cascade profile：
+在项目目录启动你安装时选定的 OMP profile：
 
 ```bash
 omp --profile smart-cascade-omp

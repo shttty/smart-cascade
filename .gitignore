@@ -22,9 +22,6 @@ archive/
 **/*apikey*
 **/*api-key*
 
-# The redacted static model projection is tracked instead.
-!sources/smart-cascade-omp/agent/models.redacted.yml
-
 # Source repository metadata is not part of this snapshot.
 /.sources-git/
 

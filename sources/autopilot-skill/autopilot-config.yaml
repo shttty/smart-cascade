@@ -14,14 +14,13 @@ project:
   #
   # An explicit selection here is persisted by the adapter into the project's
   # own .smart-cascade/override.yaml and reused by later checks. Leave it empty
-  # to accept whatever that override already records, falling back to the runner
-  # config's dispatch_contract.profile_name — the adapter owns this resolution
-  # and stays the single source of truth for which profile a project runs under.
-  profile: smart-cascade-omp
+  # to use the active/default OMP profile unless the project already has an
+  # explicit override.
+  profile: ""
   runner_kind: omp
 
   # The queue is the one thing Autopilot verifies rather than delegates: it
-  # digests the approved boundary before dispatch. Relative to the project root,
+  # confirms the approved boundary before dispatch. Relative to the project root,
   # which comes from the user's invocation, not from here — a run pointed at the
   # wrong worktree is a stop condition, not something to default.
   queue: .smart-cascade/queue.toml
@@ -38,15 +37,12 @@ verifier:
   # Herdr's `--kind` supplies the executable; launch_argv carries only native flags.
   kind: omp
   launch_argv:
-    - --profile
-    - smart-cascade-omp
     - --model
     - "@smart-cascade-root"
     - --thinking
     - high
 
   model_role: smart-cascade-root
-  model: clp/gpt-5.6-sol
   effort: high
 
   # Where the verifier's pane is opened. `session` empty means the run's own
@@ -60,13 +56,8 @@ observation:
   # interval_minutes: 0 disables periodic observation entirely.
   interval_minutes: 10
 
-  # Retained observation and dispatch evidence.
+  # Retained observation evidence.
   watch_output_dir: ~/.cache/agent-watch
-  dispatch_store_dir: ~/.cache/agent-dispatch
-
-  # Seconds to wait for a dispatch marker to appear in the runner transcript
-  # before reporting the dispatch unproven.
-  dispatch_verify_timeout_seconds: 30
 
 commit_boundary:
   # Root's post-acceptance commit / keep-as-candidate dialog.
