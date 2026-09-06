@@ -66,7 +66,7 @@ Writing work runs in the runner's isolated workspace with the profile's patch-re
 
 ## Incremental scheduling
 
-Use `bootstrap/frontier.py` or equivalent direct reasoning to select every safely ready slice. Recompute after each accepted integration. Dependencies, active writers, and observed shared mutable resources constrain readiness. Record a concrete serialization reason whenever the frontier is narrower than dependency readiness. Do not persist live topology or add a second queue.
+Use `bootstrap/frontier.py` or equivalent direct reasoning to select every safely ready slice. Recompute after each accepted integration. Dependencies, active writers, and observed shared mutable resources constrain readiness. Record a concrete serialization reason whenever the frontier is narrower than dependency readiness.
 
 ## Accepting a candidate
 
@@ -101,9 +101,9 @@ A Leader that cannot complete its slice returns `BLOCKED` with the real reason, 
 
 ## Recovery
 
-On Root resume, use the runner's own facilities to observe children that were already running. Resume alone must not continue them. Continue an existing child explicitly where the runner supports it; otherwise report the lost context honestly and redispatch from the last verified candidate. Never claim unmaterialized changes survived. Do not persist live topology.
+On Root resume, use the runner's own facilities to observe children that were already running. Resume alone must not continue them. Continue an existing child explicitly where the runner supports it; otherwise report the lost context honestly and redispatch from the last verified candidate. Never claim unmaterialized changes survived.
 
-The only persistent Smart Cascade state is static queue/configuration, receipts, candidate artifacts, Git facts, and minimal slice/child rework counters. No child registry, lifecycle database, lease, fencing, tombstone, daemon, durable mailbox, plugin runtime, or independent async queue.
+The only persistent Smart Cascade state is static queue/configuration, receipts, candidate artifacts, Git facts, and minimal slice/child rework counters.
 
 ## Verification and the commit boundary
 

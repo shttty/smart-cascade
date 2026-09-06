@@ -1,13 +1,9 @@
-schema_version: 2
+schema_version: 3
 
 runner:
   kind: omp
   # adapter path is relative to this runner directory.
   adapter_check: adapter.py
-
-transport:
-  kind: herdr
-  permission_mode: auto
 
 root:
   # Herdr's `--kind omp` supplies the executable; argv contains only native flags.
@@ -20,51 +16,32 @@ root:
   model_role: smart-cascade-root
   effort: high
 
-dispatch_contract:
-  # role paths are relative to this runner directory.
-  roles:
-    leader: roles/smart-cascade-leader.md
-    advisor: roles/smart-cascade-advisor.md
-    semantic_executor: roles/smart-cascade-executor.md
-    escalated_semantic_executor: roles/smart-cascade-escalated-executor.md
-    mechanical_executor: roles/smart-cascade-mechanical-executor.md
-
+# What the installed profile must provide for each Smart Cascade role.
+# `definition` is relative to this runner directory; the rest is what the
+# adapter expects that profile's own agent definition to project.
 roles:
   leader:
+    definition: roles/smart-cascade-leader.md
     agent: smart-cascade-leader
     model_role: smart-cascade-leader
     thinking_level: medium
   advisor:
+    definition: roles/smart-cascade-advisor.md
     agent: smart-cascade-advisor
     model_role: smart-cascade-advisor
     thinking_level: max
   semantic_executor:
+    definition: roles/smart-cascade-executor.md
     agent: smart-cascade-executor
     model_role: smart-cascade-semantic
     thinking_level: xhigh
   escalated_semantic_executor:
+    definition: roles/smart-cascade-escalated-executor.md
     agent: smart-cascade-escalated-executor
     model_role: smart-cascade-escalated-semantic
     thinking_level: xhigh
   mechanical_executor:
+    definition: roles/smart-cascade-mechanical-executor.md
     agent: smart-cascade-mechanical-executor
     model_role: smart-cascade-mechanical
     thinking_level: low
-
-projection_contract:
-  authority: runners/omp/runner-launch.yaml
-  root_runtime_projection: "selected adapter executes opaque root native argv"
-  child_runtime_projection: "the selected OMP profile owns role definitions, models, thinking levels, tools, and spawn permissions"
-  bootstrap_rule: "Smart Cascade validates the dispatch contract, profile role identities, and argv shape, then passes native argv unchanged"
-  rule: >-
-    Root launch and child role settings are configuration projections. Dispatch
-    prose carries task scope and control contracts; it does not redefine model,
-    tool, thinking, or spawn settings from the selected profile.
-
-change_policy:
-  precedence:
-    - explicit user or frozen run override
-    - this file
-    - runner-native default
-  config_change_after_run_freeze: blocked_environment
-  selected_profile_rewrite_requires_explicit_scope: true

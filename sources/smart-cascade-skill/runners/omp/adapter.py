@@ -108,11 +108,10 @@ def main() -> int:
         fail("project, adapter config, and executable inputs must exist")
     config = read_yaml(config_path, "OMP adapter config")
     runner = config.get("runner")
-    contract = config.get("dispatch_contract")
     root = config.get("root")
     roles = config.get("roles")
-    if not isinstance(runner, dict) or runner.get("kind") != "omp" or not isinstance(contract, dict) or not isinstance(root, dict) or not isinstance(roles, dict):
-        fail("OMP adapter config lacks runner, dispatch, root, or role projections")
+    if not isinstance(runner, dict) or runner.get("kind") != "omp" or not isinstance(root, dict) or not isinstance(roles, dict):
+        fail("OMP adapter config lacks runner, root, or role projections")
     adapter_check = resolve(runner_root, runner.get("adapter_check", ""))
     if adapter_check != Path(__file__).resolve():
         fail("OMP runner adapter_check does not select this adapter")
@@ -158,16 +157,17 @@ def main() -> int:
     task = installed.get("task")
     if not isinstance(task, dict) or task.get("batch") is not True or task.get("maxRecursionDepth") != 2 or task.get("isolation") != {"mode": "auto", "apply": False, "merge": "patch"}:
         fail("OMP profile task/isolation projection is stale")
-    role_paths = contract.get("roles")
     role_keys = {"leader", "advisor", "semantic_executor", "escalated_semantic_executor", "mechanical_executor"}
-    if not isinstance(role_paths, dict) or set(role_paths) != role_keys or set(roles) != role_keys:
+    if set(roles) != role_keys:
         fail("OMP adapter requires the complete production role set")
     production_names: set[str] = set()
     expected_spawns = ["smart-cascade-executor", "smart-cascade-escalated-executor", "smart-cascade-mechanical-executor"]
     for key in sorted(role_keys):
-        raw = role_paths[key]
         projection = roles[key]
-        if not isinstance(raw, str) or not raw or not isinstance(projection, dict):
+        if not isinstance(projection, dict):
+            fail(f"OMP adapter role projection is invalid: {key}")
+        raw = projection.get("definition")
+        if not isinstance(raw, str) or not raw:
             fail(f"OMP adapter role projection is invalid: {key}")
         source = resolve(runner_root, raw)
         installed_role = installed_agent / "agents" / source.name
