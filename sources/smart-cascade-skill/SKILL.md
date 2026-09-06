@@ -79,6 +79,10 @@ Read the child's result as the runner delivers it. Then verify the work itself, 
 
 Apply an accepted candidate deliberately, as Root, into the production worktree.
 
+Work that would need an unapproved runtime, an ownership change, a public interface change, an architecture decision, a scope expansion, or a live side effect stops before implementation and escalates to the user. It is not something a slice decides on its own.
+
+While reviewing a candidate, note responsibility cohesion, interface depth, duplicated glue, durable machinery, fixture tax, and speculative scope. Record concrete findings only; a general observation that code could be simpler is not one.
+
 ## Decisions
 
 - `PASS`: apply the verified candidate, rerun the verification the acceptance targets require, commit/integrate as Root, emit a timestamped receipt, advance dependencies, and recompute the frontier.
@@ -86,6 +90,14 @@ Apply an accepted candidate deliberately, as Root, into the production worktree.
 - `BLOCKED`: preserve the exact reason and any surviving artifact, then continue independent ready work.
 
 A later explicit request may reopen an integrated slice. Keep its stable `slice_id`, increment the Root-owned rework counter, use the integrated commit as the new base and last verified candidate, preserve prior accepted evidence, and create the next ordered attempt. Reopening never silently undoes an accepted commit.
+
+## Advisor
+
+Advisor is optional. Root may call one when it cannot settle a candidate on its own. Root must call one when the rework counter returns `action=require_advisor` for a slice: repeated failure is evidence the problem is not where anyone has been looking, whatever the latest attempt claims about itself.
+
+Advisor reviews one candidate Root has already settled on and returns findings. Its `PASS` is evidence, not acceptance — Root still decides. Only Root calls an Advisor.
+
+A Leader that cannot complete its slice returns `BLOCKED` with the real reason, including when the work is beyond what it can do. It does not call an Advisor and does not widen its own scope.
 
 ## Recovery
 

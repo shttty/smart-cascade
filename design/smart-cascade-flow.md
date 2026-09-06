@@ -452,7 +452,7 @@ slice-a/child-a rework=1
 
 ```text
 state.py slice rework slice-a
-→ rework=3 action=suggest_advisor
+→ rework=3 action=require_advisor
 
 state.py child rework slice-a child-a
 → rework=3 action=upgrade_executor

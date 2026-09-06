@@ -121,7 +121,7 @@ def execute(namespace: str, command: str, slice_id: str, child_id: str | None) -
         os.close(directory_fd)
     action = "continue"
     if current % 3 == 0:
-        action = "suggest_advisor" if namespace == "slice" else "upgrade_executor"
+        action = "require_advisor" if namespace == "slice" else "upgrade_executor"
     return f"{label} rework={current} action={action}"
 
 

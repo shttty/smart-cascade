@@ -49,7 +49,7 @@ Use `smart-cascade-executor` for normal implementation or diagnosis, `smart-casc
 
 ## Blockers
 
-Return `BLOCKED_ENVIRONMENT` for missing isolation or delegation capability. Return `BLOCKED_ARCHITECTURE` for an unapproved ownership, queue, persistence, interface, or scope change. Return `BLOCKED` for missing facts, stale identity, overlap, conflict, failed authorization, failed verification, or unresolved implementation issues.
+Return `BLOCKED_ENVIRONMENT` for missing isolation or delegation capability. Return `BLOCKED_ARCHITECTURE` for an unapproved ownership, queue, persistence, interface, or scope change. Return `BLOCKED` for missing facts, stale identity, overlap, conflict, failed authorization, failed verification, or unresolved implementation issues — including when the work is beyond what you can do. Report the real reason; Root decides whether to bring in an Advisor.
 
 ## Terminal result
 

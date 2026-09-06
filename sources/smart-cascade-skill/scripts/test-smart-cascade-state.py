@@ -40,7 +40,7 @@ def main() -> int:
         for count in range(1, 10):
             result = run(state, "slice", "rework", "slice-a")
             assert result.returncode == 0, result.stdout
-            action = "suggest_advisor" if count % 3 == 0 else "continue"
+            action = "require_advisor" if count % 3 == 0 else "continue"
             assert result.stdout.strip() == f"slice-a rework={count} action={action}"
 
         for count in range(1, 7):

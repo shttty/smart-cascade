@@ -17,7 +17,6 @@ Read before controlling a run:
 - [`references/state-machine.md`](references/state-machine.md)
 - [`references/queue-validation.md`](references/queue-validation.md)
 - [`references/state-validation.md`](references/state-validation.md)
-- [`references/acceptance-gates.md`](references/acceptance-gates.md)
 - [`references/hierarchical-lanes.md`](references/hierarchical-lanes.md)
 - [`references/smart-cascade-flow.md`](references/smart-cascade-flow.md)
 
