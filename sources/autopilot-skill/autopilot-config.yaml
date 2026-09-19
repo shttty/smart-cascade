@@ -8,14 +8,11 @@ project:
   # Everything else about the run — DAG, roles, models, worktrees — is Root's,
   # and comes from the runner config Root itself loads.
   #
-  # The OMP profile to launch Root under, passed to adapter `check` as
-  # --profile. Accepts a profile name under ~/.omp/profiles or a full profile
-  # directory, the same forms the adapter takes.
-  #
-  # An explicit selection here is persisted by the adapter into the project's
-  # own .smart-cascade/override.yaml and reused by later checks. Leave it empty
-  # to use the active/default OMP profile unless the project already has an
-  # explicit override.
+  # The OMP profile to launch Root under: a name under ~/.omp/profiles or a
+  # full profile directory. Use an explicit run selection or this value first.
+  # Leave empty to read the project's existing .smart-cascade/override.yaml,
+  # falling back to the active/default OMP profile. Record the selection;
+  # startup does not run adapter checks or rewrite project overrides.
   profile: ""
   runner_kind: omp
 

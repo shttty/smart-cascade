@@ -83,7 +83,7 @@ verifier 的产出是边界证据而非 slice 判决：`PASS` / `REWORK` / `BLOC
 
 行为由 `autopilot-config.yaml` 控制：`commit_boundary.answer` 取 `recommend`（超时后自动选推荐值）或 `ask`（每次问人），`commit_boundary.auto_select_after_seconds` 是超时秒数，`verifier.enabled: false` 可跳过交叉检查只保留 Root 自己那份读数，`observation.interval_minutes: 0` 关闭周期观察（完成与 blocker 事件不受影响，始终即时）。
 
-Smart Cascade adapter 只提供 admission `check`。运行时正确性由 Root 对 settlement、patch、checks 和 integration 的 candidate 验收保证。
+Smart Cascade adapter 的 `check` 仅用于安装验证或显式诊断，不在任务启动时自动运行，也不以 `ADAPTER_READY` 作为启动前提。运行时正确性由 Root 对 settlement、patch、checks 和 integration 的 candidate 验收保证。
 
 ## 项目配置
 
@@ -96,7 +96,7 @@ Smart Cascade adapter 只提供 admission `check`。运行时正确性由 Root �
 .smart-cascade/state/          # 最小 rework counters
 ```
 
-`adapter.py check --profile <name-or-full-path>` 成功后写入 `override.yaml`，字段只有 `profile_name` 与 `profiles_root`。未传 `--profile` 时先读 override，没有则使用 `runner-launch.yaml` 的默认 `profile_name`。
+显式运行 `adapter.py check --profile <name-or-full-path>` 成功后写入 `override.yaml`，字段只有 `profile_name` 与 `profiles_root`。任务启动按本次显式选择、已有 override、当前/默认 OMP profile 的顺序选择并记录实际 profile，不为选择 profile 执行检查或自动重写 override。
 
 运行 core preflight：
 

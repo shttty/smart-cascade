@@ -26,7 +26,7 @@ The preferred production topology keeps Leaders and Executors as native OMP suba
 
 ## Root startup and control
 
-Autopilot uses the installed `herdr` skill for Root startup, initialization, prompts, observation, and recovery. It runs the selected runner adapter's `check` operation before the user's one run-level authorization. Runtime correctness remains Root's candidate-validation responsibility; Autopilot has no parallel bootstrap or authorization script.
+Autopilot uses the installed `herdr` skill for Root startup, initialization, prompts, observation, and recovery. It records the selected runner/profile before the user's one run-level authorization. Runtime correctness remains Root's candidate-validation responsibility; Autopilot has no parallel bootstrap or authorization script.
 
 A settled Root may receive a normal prompt. A working Root may receive low-volume supervisory steering/follow-up. `working` selects the transport mode; it is not a DAG-readiness blocker and does not require a durable release inbox at the expected concurrency.
 

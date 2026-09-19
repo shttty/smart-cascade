@@ -62,4 +62,4 @@ The validator must:
 
 ## Ownership
 
-Autopilot validates the approved boundary, uses the installed `herdr` skill for optional Root startup and control, obtains one explicit `ADAPTER_READY` receipt from the selected runner adapter, and sends the complete queue boundary after one run-level authorization. Root reads the complete queue, computes the incremental top-level ready frontier, decides slice outcomes, and advances dependencies after accepted integration. Leader computes child frontiers. No role writes live status into the TOML file.
+Autopilot validates the approved boundary, uses the installed `herdr` skill for optional Root startup and control, records the selected runner/profile, and sends the complete queue boundary after one run-level authorization. Root reads the complete queue, computes the incremental top-level ready frontier, decides slice outcomes, and advances dependencies after accepted integration. Leader computes child frontiers. No role writes live status into the TOML file.

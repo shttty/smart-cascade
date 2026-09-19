@@ -7,7 +7,7 @@ Autopilot establishes one authorized Root run:
 ```text
 verify project / queue / initial base / runner config
   → use the installed herdr skill to start and initialize Root
-  → verify CORE_READY and obtain selected runner ADAPTER_READY
+  → verify CORE_READY and record the selected runner/profile
   → receive one explicit authorization for the complete approved queue
   → observe and supervise until Root reports run completion or a blocker
 ```

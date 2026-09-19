@@ -21,17 +21,7 @@ Use only on explicit user invocation. Install this self-contained Skill through 
 
 1. Read the approved project flow/spec and `<project>/.smart-cascade/queue.toml`, then `runners/omp/roles/*.md` and `runners/omp/runner-launch.yaml`.
 2. Run `SMART_CASCADE_PROJECT_ROOT=<project> bash bootstrap/init-environment.sh` and require `CORE_READY`. This preflight is read-only.
-3. Check that the OMP installation can host the Smart Cascade roles:
-
-```text
-python3 runners/omp/adapter.py check \
-  --project-root <project> \
-  --omp-bin <omp-executable> \
-  [--config <runner-launch.yaml>] \
-  [--profile <name-or-full-profile-path>]
-```
-
-`--config` defaults to `runners/omp/runner-launch.yaml`. `--profile` accepts a profile name under `~/.omp/profiles` or a full profile directory; a successful explicit selection is persisted in `<project>/.smart-cascade/override.yaml` and later checks reuse it. Without an override the adapter uses OMP's default profile. This is one-time installation admission — it confirms the profile, model roles, isolation policy, and OMP version, and says nothing about any later dispatch. A missing or misconfigured profile, role, or executable is `BLOCKED_ENVIRONMENT`.
+3. Select the runner and profile from explicit run settings, an existing `<project>/.smart-cascade/override.yaml`, then the active/default OMP profile. Record the actual selection and use the same profile for Root and its installed roles. Read existing overrides without rewriting them during startup. Adapter checks are installation diagnostics, not a startup step or a required receipt; report actual launch or runtime failures when they occur.
 
 4. Verify the exact Git base and worktree state. Present the queue and acceptance-target summary. Ask exactly one run-level confirmation. Invocation is not authorization.
 
