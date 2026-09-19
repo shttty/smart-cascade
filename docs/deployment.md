@@ -40,7 +40,8 @@ npx skills add https://github.com/shttty/smart-cascade/tree/main/sources/smart-c
 omp config set async.enabled true --json
 omp config set task.batch true --json
 omp config set task.maxRecursionDepth 2 --json
-omp config set task.isolation.mode auto --json
+omp config set task.isolation.enabled true --json
+omp config set isolation.backend auto --json
 omp config set task.isolation.apply false --json
 omp config set task.isolation.merge patch --json
 ```

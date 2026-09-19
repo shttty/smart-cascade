@@ -65,7 +65,7 @@ A future durable seam must preserve this split. It must not make Autopilot a pro
 
 ## Root→Leader and Leader→Executor runtime
 
-Root and Leader use native asynchronous OMP tasks with `isolated=true`. The profile-wide policy is `task.isolation.mode=auto`, `apply=false`, `merge=patch`. Hub supplies parent/child messages and completion; parents validate child results and serially apply verified child patches into their own isolated candidate. Herdr-supervised external panes are not the OMP production path.
+Root and Leader use native asynchronous OMP tasks with `isolated=true`. The profile-wide policy is `task.isolation.enabled=true`, `isolation.backend=auto`, `apply=false`, `merge=patch`. Hub supplies parent/child messages and completion; parents validate child results and serially apply verified child patches into their own isolated candidate. Herdr-supervised external panes are not the OMP production path.
 
 ## Candidate and acceptance
 

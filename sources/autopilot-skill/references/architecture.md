@@ -65,7 +65,7 @@ A Root or child agent still being `working` does not block another newly ready s
 
 ## Native OMP isolation and patch retention
 
-The OMP production path uses native asynchronous tasks with profile-wide `task.isolation.mode=auto`, `apply=false`, and `merge=patch`:
+The OMP production path uses native asynchronous tasks with profile-wide `task.isolation.enabled=true`, `isolation.backend=auto`, `apply=false`, and `merge=patch`:
 
 - Root→Leader and Leader→Executor writing tasks request `isolated=true`.
 - OMP owns temporary isolation directories, retained patch artifacts, and cleanup of those temporary resources. The runtime does not apply a child patch to a parent checkout automatically.

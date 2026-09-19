@@ -15,7 +15,8 @@ user-authorized Root OMP session
 The selected profile policy is:
 
 ```text
-task.isolation.mode=auto
+task.isolation.enabled=true
+isolation.backend=auto
 task.isolation.apply=false
 task.isolation.merge=patch
 ```

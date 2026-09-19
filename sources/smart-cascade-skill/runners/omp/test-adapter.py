@@ -74,8 +74,9 @@ def write_profile_config(path: Path) -> None:
         "task": {
             "batch": True,
             "maxRecursionDepth": 2,
-            "isolation": {"mode": "auto", "apply": False, "merge": "patch"},
+            "isolation": {"enabled": True, "apply": False, "merge": "patch"},
         },
+        "isolation": {"backend": "auto"},
     }
     path.write_text(yaml.safe_dump(profile, sort_keys=False), encoding="utf-8")
 
@@ -171,8 +172,17 @@ def main() -> int:
 
         rewrite_yaml(installed_config, lambda document: document["task"]["isolation"].update({"apply": True}))
         rejected_apply = check_adapter(project, profiles, config_path, omp, adapter_env)
-        assert rejected_apply.returncode != 0 and "task/isolation projection is stale" in rejected_apply.stdout, rejected_apply.stdout
+        assert rejected_apply.returncode != 0, rejected_apply.stdout
         write_profile_config(installed_config)
+        for mutate in (
+            lambda document: document["task"]["isolation"].update({"enabled": False}),
+            lambda document: document["isolation"].update({"backend": "reflink"}),
+            lambda document: document["task"]["isolation"].update({"merge": "branch"}),
+        ):
+            rewrite_yaml(installed_config, mutate)
+            rejected = check_adapter(project, profiles, config_path, omp, adapter_env)
+            assert rejected.returncode != 0, rejected.stdout
+            write_profile_config(installed_config)
     subprocess.run([sys.executable, "-m", "py_compile", str(ADAPTER)], check=True)
     print('{"status":"OMP_ADAPTER_TESTS_PASSED"}')
     return 0

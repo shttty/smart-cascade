@@ -224,7 +224,7 @@ async function main(): Promise<void> {
 		const runnerConfig = join(root, "runner-launch.yaml");
 		await writeFile(runnerConfig, `roles:\n  semantic_executor:\n    agent: ${REDISPATCH_AGENT}\n    model_role: smart-cascade-semantic\n    model: ${model}\n`);
 		const config = join(root, "config.yml");
-		await writeFile(config, `modelRoles:\n  smart-cascade-semantic: ${model}\nasync:\n  enabled: true\ntask:\n  batch: false\n  agentIdleTtlMs: 1\n  maxRecursionDepth: 2\n  isolation:\n    mode: auto\n    apply: false\n    merge: patch\nworktree:\n  base: '${isolationBase.replaceAll("'", "''")}'\n`);
+		await writeFile(config, `modelRoles:\n  smart-cascade-semantic: ${model}\nasync:\n  enabled: true\ntask:\n  batch: false\n  agentIdleTtlMs: 1\n  maxRecursionDepth: 2\n  isolation:\n    enabled: true\n    apply: false\n    merge: patch\nisolation:\n  backend: auto\nworktree:\n  base: '${isolationBase.replaceAll("'", "''")}'\n`);
 		const baseArgs = ["--profile", profile, "--config", config, "--no-extensions", "--no-skills", "--no-rules", "--no-lsp", "--approval-mode", "yolo"];
 		const options = { cliPath: OMP_CLI, cwd: repo, model, sessionDir, env: { HOME: home, OMP_PROFILE: profile, PI_PROFILE: profile, OMP_WORKTREE_DIR: isolationBase }, args: baseArgs };
 		const lifecycle: unknown[] = [];

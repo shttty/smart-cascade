@@ -244,7 +244,7 @@ async function main(): Promise<void> {
 			await copyFile(MODELS_SOURCE, join(profileAgentDir, "models.yml"));
 			for (const [name, content] of Object.entries(profileAgents())) await writeFile(join(profileAgentsDir, name), content);
 			const path = join(root!, "config.yml");
-			await writeFile(path, `modelRoles:\n  smart-cascade-leader: ${parsed.model}\n  smart-cascade-semantic: ${parsed.model}\ntask:\n  isolation:\n    mode: auto\n    apply: false\n    merge: patch\n  maxRecursionDepth: 2\n  batch: true\nasync:\n  enabled: true\nworktree:\n  base: '${isolationBase!.replaceAll("'", "''")}'\n`);
+			await writeFile(path, `modelRoles:\n  smart-cascade-leader: ${parsed.model}\n  smart-cascade-semantic: ${parsed.model}\ntask:\n  isolation:\n    enabled: true\n    apply: false\n    merge: patch\n  maxRecursionDepth: 2\n  batch: true\nasync:\n  enabled: true\nisolation:\n  backend: auto\nworktree:\n  base: '${isolationBase!.replaceAll("'", "''")}'\n`);
 			runnerConfig = join(root!, "runner-launch.yaml");
 			await writeFile(runnerConfig, `roles:\n  leader:\n    agent: smart-cascade-leader\n    model_role: smart-cascade-leader\n    model: ${parsed.model}\n  semantic_executor:\n    agent: smart-cascade-executor\n    model_role: smart-cascade-semantic\n    model: ${parsed.model}\n`);
 			return path;

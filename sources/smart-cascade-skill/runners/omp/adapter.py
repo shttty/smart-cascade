@@ -155,8 +155,11 @@ def main() -> int:
     if installed.get("async") != {"enabled": True}:
         fail("OMP profile must enable async")
     task = installed.get("task")
-    if not isinstance(task, dict) or task.get("batch") is not True or task.get("maxRecursionDepth") != 2 or task.get("isolation") != {"mode": "auto", "apply": False, "merge": "patch"}:
+    if not isinstance(task, dict) or task.get("batch") is not True or task.get("maxRecursionDepth") != 2 or task.get("isolation") != {"enabled": True, "apply": False, "merge": "patch"}:
         fail("OMP profile task/isolation projection is stale")
+    isolation = installed.get("isolation")
+    if not isinstance(isolation, dict) or isolation.get("backend") != "auto":
+        fail("OMP profile isolation backend must be auto")
     role_keys = {"leader", "advisor", "semantic_executor", "escalated_semantic_executor", "mechanical_executor"}
     if set(roles) != role_keys:
         fail("OMP adapter requires the complete production role set")

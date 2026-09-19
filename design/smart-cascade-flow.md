@@ -73,7 +73,7 @@ Smart Cascade 启动前只要求：
 1. `.smart-cascade/queue.toml` 存在；
 2. queue 通过机械验证；
 3. 当前 OMP profile 支持 native task、Agent Hub 和 session resume；
-4. 写任务使用 `isolated=true`，profile 配置为 `task.isolation.mode=auto`、`apply=false`、`merge=patch`；
+4. 写任务使用 `isolated=true`，profile 配置为 `task.isolation.enabled=true`, `isolation.backend=auto`、`apply=false`、`merge=patch`；
 5. 子任务使用 strict structured settlement；
 6. 父级能读取并验证 native task 返回的 authoritative retained patch，再串行应用；
 7. 用户明确确认开始。

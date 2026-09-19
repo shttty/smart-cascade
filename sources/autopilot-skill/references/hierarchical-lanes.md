@@ -21,7 +21,7 @@ Dispatch requires satisfied dependencies and an isolated worktree for each activ
 
 - One slice or child has one stable logical identity.
 - Each execution has an ordered `attempt_id` and explicit parent base/candidate.
-- Native OMP isolation uses `isolated=true` with profile-wide `task.isolation.mode=auto`, `apply=false`, and `merge=patch`; OMP retains the patch artifact while temporary isolation is cleaned after capture.
+- Native OMP isolation uses `isolated=true` with profile-wide `task.isolation.enabled=true`, `isolation.backend=auto`, `apply=false`, and `merge=patch`; OMP retains the patch artifact while temporary isolation is cleaned after capture.
 - A parent validates child settlement and serially applies each verified child patch into its own isolated candidate.
 - `REWORK` rematerializes a new attempt, reapplies and verifies the last cumulative patch against an explicit base, and follows only the remaining checklist.
 - A new attempt never erases unresolved predecessor evidence. If no patch is emitted, report lost unmaterialized bytes and restart from the last verified candidate.

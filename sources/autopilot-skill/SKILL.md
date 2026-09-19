@@ -152,7 +152,7 @@ Escalate to the user only for what Root genuinely cannot absorb — architecture
 The OMP production path is native asynchronous task dispatch, not a borrowed-worktree adapter:
 
 - Root→Leader and Leader→Executor writing tasks request `isolated=true`.
-- The selected profile-wide isolation policy is `task.isolation.mode=auto`, `apply=false`, and `merge=patch`.
+- The selected profile-wide isolation policy is `task.isolation.enabled=true`, `isolation.backend=auto`, `apply=false`, and `merge=patch`.
 - Hub carries plain-prose runtime messages, with explicit slice, attempt, and nonce labels when needed for correlation; it is not a JSON status-object channel. Strict structured output belongs to task completion. Parents validate the prose handoff against real artifact bytes and the retained patch before serial application.
 
 For `REWORK`, Root or Leader rematerializes a new attempt from an explicit base, reapplies the last verified cumulative patch, verifies that replay, and handles only the remaining findings. Logical slice and child identities remain stable across attempts. A failed temporary attempt with no retained artifact is reported honestly and restarts from the last verified candidate; a validated retained artifact from a blocker is preserved as evidence only and never promoted to `PASS`.

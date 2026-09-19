@@ -54,7 +54,7 @@ Root coordinates; it does not replace Leader as the product-change implementer.
 
 ## Native task isolation and patch retention
 
-Root→Leader and Leader→Executor writing tasks request `isolated=true`. The profile-wide policy is `task.isolation.mode=auto`, `apply=false`, `merge=patch`. OMP owns temporary isolation directories, captures retained patch artifacts, and cleans those temporary resources; it does not automatically apply patches to parent checkouts.
+Root→Leader and Leader→Executor writing tasks request `isolated=true`. The profile-wide policy is `task.isolation.enabled=true`, `isolation.backend=auto`, `apply=false`, `merge=patch`. OMP owns temporary isolation directories, captures retained patch artifacts, and cleans those temporary resources; it does not automatically apply patches to parent checkouts.
 
 Hub is the runtime communication bus for parent/child messages and completion. A parent validates the child result, real changed paths, postconditions, and retained patch, then serially applies each verified child patch into its own isolated candidate. Root owns logical attempts, candidate validity, accepted patch application, commit/integration, and DAG advancement; Leader owns child validation and bounded assembly; Executor owns only the bounded scope.
 
