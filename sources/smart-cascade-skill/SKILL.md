@@ -83,11 +83,15 @@ A later explicit request may reopen an integrated slice. Keep its stable `slice_
 
 ## Advisor
 
-Advisor is optional. Root may call one when it cannot settle a candidate on its own. Root must call one when the rework counter returns `action=require_advisor` for a slice: repeated failure is evidence the problem is not where anyone has been looking, whatever the latest attempt claims about itself.
+Advisor is read-only blocker diagnosis and unblocking assistance. Root may invoke one only when an identified task or slice is explicitly `BLOCKED` and Root needs help resolving that blocker. Ordinary single `REWORK`, review, approval, independent verification, risk inspection, or uncertainty does not directly trigger Advisor.
 
-Advisor reviews one candidate Root has already settled on and returns findings. Its `PASS` is evidence, not acceptance — Root still decides. Only Root calls an Advisor.
+When the slice rework counter returns `action=require_advisor` at its configured threshold, Root must first mark that slice `BLOCKED`, preserve the exact blocker and relevant evidence, then invoke Advisor to diagnose or help unblock it. The threshold is a route through the explicit `BLOCKED` flow, not an acceptance or authorization decision.
 
-A Leader that cannot complete its slice returns `BLOCKED` with the real reason, including when the work is beyond what it can do. It does not call an Advisor and does not widen its own scope.
+Before invoking Advisor, Root must provide the task or slice identity, the explicit blocker and its current status, the relevant evidence, and the specific assistance requested. If the blocker concerns a candidate, Root must freeze and provide that exact candidate and its lineage. A candidate is not required for an environment, specification, or other blocker that does not concern candidate bytes.
+
+Only Root invokes Advisor and decides the outcome. Advisor findings are read-only evidence: they do not accept work, authorize scope, grant permissions, or replace a user decision. A blocker caused by missing user authorization for scope, permissions, or production action goes to the user, not Advisor.
+
+A Leader that cannot complete its slice returns `BLOCKED` with the real reason, including when the work is beyond what it can do. It does not call an Advisor or widen its own scope; Root invokes Advisor only after recording an explicit blocker and a concrete request for assistance.
 
 ## Recovery
 

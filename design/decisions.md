@@ -30,7 +30,7 @@ No separate Smart Cascade child-runtime interface, registry, lifecycle store, to
 - **Root** is the only production scheduler, slice technical acceptance authority, Git integration authority, and dependency-advancement owner.
 - **Leader** owns one slice's execution strategy, child coordination, settlement validation, bounded serial patch assembly, and candidate evidence.
 - **Executor** owns only one bounded implementation assignment inside native OMP isolation.
-- **Advisor** is optional evidence for bounded analysis or independent review; Advisor `PASS` is not acceptance.
+- **Advisor** is Root-only, read-only evidence for an explicitly `BLOCKED` task or slice when blocker diagnosis or unblocking assistance is needed; a candidate is required only when that blocker concerns candidate bytes, and Advisor `PASS` is not an outcome or acceptance.
 - **Autopilot** is an external supervisor for bootstrap, observation, intervention, recovery, escalation, and reporting. It is not a second scheduler or acceptance authority.
 - **Herdr** is an optional Root process supervisor or transport fallback. It is not the Leader message bus or production database.
 

@@ -20,11 +20,11 @@ Autopilot owns bootstrap, observation, intervention, recovery, escalation, and f
 | Environment, queue, runner, and Root-identity bootstrap verification | Autopilot |
 | Complete-DAG intake and incremental ready-frontier scheduling | Root |
 | Large-slice logical attempt and retained-artifact lifecycle | Root |
-| Leader and Advisor dispatch | Root |
+| Leader and conditional Advisor dispatch | Root |
 | Slice execution strategy and child coordination | Leader |
 | Bounded implementation | Assigned Executor |
 | Child settlement and bounded assembly | Leader |
-| Candidate freeze and Advisor selection | Root |
+| Candidate freeze and conditional Advisor selection for explicit blockers | Root |
 | Slice `PASS` / `REWORK` / `BLOCKED` | Root |
 | Commit/integration order and dependency advancement | Root |
 | Production worktree/artifact cleanup | Root or Leader that owns the attempt |

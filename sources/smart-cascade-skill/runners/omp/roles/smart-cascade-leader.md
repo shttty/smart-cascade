@@ -49,7 +49,7 @@ Use `smart-cascade-executor` for normal implementation or diagnosis, `smart-casc
 
 ## Blockers
 
-Return `BLOCKED_ENVIRONMENT` for missing isolation or delegation capability. Return `BLOCKED_ARCHITECTURE` for an unapproved ownership, queue, persistence, interface, or scope change. Return `BLOCKED` for missing facts, stale identity, overlap, conflict, failed authorization, failed verification, or unresolved implementation issues — including when the work is beyond what you can do. Report the real reason; Root decides whether to bring in an Advisor.
+Return `BLOCKED_ENVIRONMENT` for missing isolation or delegation capability. Return `BLOCKED_ARCHITECTURE` for an unapproved ownership, queue, persistence, interface, or scope change. Return `BLOCKED` for missing facts, stale identity, overlap, conflict, failed authorization, failed verification, or unresolved implementation issues — including when the work is beyond what you can do. Report the real reason; only Root may invoke Advisor after recording an explicit task/slice blocker, relevant evidence, and a concrete request for blocker assistance. An ordinary single `REWORK`, review, independent verification, risk inspection, or uncertainty does not directly trigger Advisor. If the slice counter returns `action=require_advisor`, Root must mark the slice `BLOCKED` before invoking Advisor; missing user authorization remains a user decision.
 
 ## Terminal result
 

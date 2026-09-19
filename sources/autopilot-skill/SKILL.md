@@ -118,7 +118,7 @@ A boundary violation permits supervision action, not takeover. Stop or steer Roo
 
 ## Candidate and Git evidence
 
-Root owns candidate freeze, Advisor selection, slice acceptance, REWORK, commit/integration, dependency advancement, and cleanup. Autopilot may verify those facts for supervision/reporting, but its observation does not create a second verdict.
+Root owns candidate freeze, conditional Advisor selection for explicit blockers, slice acceptance, REWORK, commit/integration, dependency advancement, and cleanup. Autopilot may verify those facts for supervision/reporting, but its observation does not create a second verdict or invoke Advisor.
 
 Never call runner `done`, child `completed`, prompt wait success, inactivity, or a clean terminal accepted or integrated. Require Root's typed production evidence plus real Git/worktree verification.
 
@@ -143,9 +143,9 @@ Its verdict is evidence for the commit boundary, not a slice decision. `PASS`/`R
 
 When the verifier and Root disagree, or a tier comes back failing, the run does not stop — it routes. Weigh the two reports on their evidence rather than their source: which one names the exact entry point, retains the real command output, and accounts for preconditions. A report that shows the failing output outweighs one that asserts a pass without it, and a `not runnable` with a named missing precondition is neither a pass nor a contradiction.
 
-Then hand the assessment back to Root as the finding for a `REWORK`, and say which reading the evidence favours and why. Root decides the disposition and may pull in an Advisor where the disagreement is substantive rather than mechanical. That assessment is input to Root's decision, never a second verdict: Autopilot does not re-run the tiers to break the tie, does not overturn a slice decision, and does not commit on the strength of its own reading.
+Then hand the assessment back to Root as the finding for a `REWORK`, and say which reading the evidence favours and why. Root decides the disposition. An ordinary single `REWORK`, verifier disagreement, failing tier, independent verification, risk inspection, or uncertainty does not directly trigger Advisor. If the slice rework counter returns `action=require_advisor`, Root must mark that slice `BLOCKED`, preserve the relevant evidence, and invoke Advisor for blocker diagnosis or unblocking assistance; Autopilot does not invoke it or convert routine review into an Advisor task.
 
-Escalate to the user only for what Root genuinely cannot absorb — architecture or product-boundary changes, scope beyond the approved queue, or an external side effect. A failing tier, a disputed report, and a repeated `REWORK` are all ordinary run traffic; route them through Root and keep going.
+Escalate to the user only for what Root genuinely cannot absorb — architecture or product-boundary changes, scope beyond the approved queue, missing authorization, or an external side effect. A failing tier, a disputed report, and an ordinary `REWORK` are normal run traffic; route them through Root and keep going. A thresholded slice blocker still follows the explicit `BLOCKED` flow, while missing user authorization remains a user decision.
 
 ## Native OMP task boundary
 
@@ -174,4 +174,4 @@ Intervene or escalate for:
 
 Independent production chains remain Root's responsibility. Autopilot does not serialize healthy work merely because one chain blocks.
 
-Nothing else stops the run. A failing tier, a verifier disagreeing with Root, and a repeated `REWORK` are the run working as intended — assess the evidence, route it back to Root, and continue. Stopping is for the conditions above, where continuing would mean guessing at something Root has no way to resolve.
+Nothing else stops the run. A failing tier, a verifier disagreeing with Root, and an ordinary `REWORK` are the run working as intended — assess the evidence, route it back to Root, and continue. When the slice counter returns `action=require_advisor`, Root marks that slice `BLOCKED` and invokes Advisor through the explicit blocker flow. Stopping outside that route is for the conditions above, where continuing would mean guessing at something Root has no way to resolve.

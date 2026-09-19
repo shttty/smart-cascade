@@ -15,7 +15,7 @@ A future production-state validator belongs to Root's recovery seam and must ver
 - child task-scope assignments and worktree confinement;
 - Hub prose settlement correlation using slice/attempt/nonce labels where needed;
 - Leader/Executor settlement and bounded serial assembly;
-- candidate freeze, Advisor/acceptance-target verification evidence, and Root decision;
+- candidate freeze, conditional Root-invoked Advisor blocker evidence when a task is explicitly `BLOCKED`, acceptance-target verification evidence, and Root decision;
 - accepted patch application, commit/integration identity, and dependency advancement;
 - cleanup or preserved-blocker disposition.
 

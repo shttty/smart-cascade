@@ -52,8 +52,8 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 24. As Root, I want `REWORK` to address an exact remaining checklist under stable logical identity, so that agents do not rediscover already accepted work.
 25. As Root, I want a new attempt to start from an explicit base and the last verified cumulative patch, so that candidate provenance remains honest.
 26. As Root, I want a failed temporary attempt with no retained patch reported as lost unmaterialized work, so that absence of an artifact is not disguised as preservation.
-27. As Root, I want to request an Advisor only when bounded analysis or independent review is useful, so that review is risk-shaped rather than mandatory ceremony.
-28. As Root, I want Advisor `PASS` to remain evidence rather than acceptance, so that production authority is not split.
+27. As Root, I want an ordinary single `REWORK`, review, approval, independent verification, risk inspection, or uncertainty to remain in the normal flow, while a slice counter threshold routes through explicit `BLOCKED` before Advisor assistance.
+28. As Root, I want Advisor findings to remain read-only evidence rather than acceptance or authorization, so production authority and user decisions stay with Root/user.
 29. As Root, I want final Git commit/integration and cleanup to remain Root-only operations, so that child roles cannot silently promote their own work.
 30. As a Leader, I want to read the actual code before deciding child decomposition, so that child assignments follow real patch seams rather than preset functional categories.
 31. As a Leader, I want to split independent non-overlapping patches aggressively, including patches in the same file, so that parallel implementation is not lost to speculative conflict fear.
@@ -79,9 +79,9 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 51. As an Executor, I want to run focused verification proving the named acceptance goals, so that bounded child work does not turn into an unplanned full-project workflow.
 52. As an Executor, I want to leave production commit and integration to Root, so that a child cannot bypass parent validation.
 53. As an Executor, I want to return strict settlement evidence without claiming the runtime-owned patch path, so that responsibilities remain truthful.
-54. As an Advisor, I want to review one exact frozen candidate, so that findings cannot drift across changing bytes.
-55. As an Advisor, I want to remain read-only and return evidence rather than fixes, so that review and implementation authority do not collapse together.
-56. As an Advisor, I want to block on candidate drift or unsafe verification, so that a clean verdict is never issued against uncertain evidence.
+54. As an Advisor, I want to analyze one explicit blocker and inspect one exact frozen candidate only when that blocker concerns candidate bytes, so evidence stays tied to the real blocker without requiring a nonexistent candidate for environment/specification blockers.
+55. As an Advisor, I want to remain read-only and return evidence rather than fixes or outcomes, so blocker assistance cannot become implementation or acceptance authority.
+56. As an Advisor, I want missing blocker identity, evidence, or requested assistance to block analysis, so a general review is never disguised as blocker work.
 57. As Autopilot, I want to bootstrap and authorize Root exactly once for the approved run, so that I do not become a second slice scheduler.
 58. As Autopilot, I want read-only lifecycle, progress, transcript, Git, and blocker evidence, so that I can supervise without owning production state.
 59. As Autopilot, I want to intervene only on stalls, boundary violations, transport identity loss, unrecoverable runtime capability loss, or explicit external decisions, so that healthy Root operation remains autonomous.
@@ -123,12 +123,11 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 - Leader validates child settlement and authoritative patch artifacts, then applies verified child patches serially in its own isolated candidate. Leader runs cumulative checks before settlement.
 - Root validates the Leader settlement and retained patch. When final checks would mutate or pollute the production checkout, Root evaluates the patch against a disposable verification candidate derived from an explicit base.
 - Root alone decides slice `PASS`, `REWORK`, or `BLOCKED`, applies accepted patches, performs production Git commit/integration, advances dependency milestones, and records cleanup disposition.
-- Advisor is optional and read-only. Advisor output is evidence; it is not a mandatory gate and cannot replace Root acceptance.
+- Advisor is Root-only, optional, and read-only. Root may invoke Advisor only for an explicitly `BLOCKED` task or slice that needs blocker diagnosis or unblocking assistance, with identity, evidence, and a concrete request. A candidate is required only when the blocker concerns candidate bytes. Advisor output is evidence; it is not a mandatory gate, outcome, authorization, or replacement for Root/user decisions.
 - REWORK retains stable logical identity. A new attempt uses an explicit base and replays the last verified cumulative patch before handling only the remaining checklist.
 - An attempt with no retained artifact has no claim to preserved unmaterialized bytes. The parent records the loss and restarts from the last verified candidate. A blocked or failed native job/lifecycle/provider disposition with an independently validated retained patch may be preserved as `preserved_not_candidate`: it cannot advance dependencies, be applied, or be treated as `PASS` without a later independently validated candidate. Public async evidence uses lifecycle/RPC/native progress, native rendered task envelopes, retained artifacts, and Git; it does not require or reconstruct the unexposed internal `SingleResult` fields.
 - Rework persistence is intentionally minimal. One Root-owned counter file stores slice-level counts; one Leader-owned counter file per slice stores child-level counts. These entries are counters, not live topology.
-- Rework counters increment atomically through explicit slice and child command namespaces. At multiples of three, the command emits an escalation suggestion without persisting an escalation state.
-- Slice escalation suggests an Advisor. Child escalation first selects a stronger semantic Executor. Mechanical Executors are used only for decided deterministic postimages.
+- Rework counters increment atomically through explicit slice and child command namespaces. Ordinary counts do not directly invoke Advisor. At each configured slice threshold, the command emits `action=require_advisor`; Root must mark that slice `BLOCKED`, preserve blocker evidence, and invoke Advisor for diagnosis/unblocking. Child counts at multiples of three select the stronger semantic Executor.
 - Root recovery is two-step. Root resumes and re-observes the run first; it then explicitly continues/revives an applicable parked child. Root resume alone does not automatically continue child execution.
 - If native OMP can recover the child, the original identity, session, and isolation are reused. If it cannot, Root redispatches from the last verified candidate and reports the lost context.
 - Autopilot remains an optional external supervisor for bootstrap, observation, intervention, recovery, escalation, and reporting. It does not compute the ready frontier, dispatch production children, decide routine slice outcomes, or perform production Git actions.
@@ -145,13 +144,13 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 - A dedicated real-interruption recovery smoke must prove that interrupting Root preserves the child session and isolation artifact; Root resume rediscovers the child as parked without automatic execution; explicit continuation revives the original child identity; and revival appends to the same child session and uses the same isolation rather than spawning a replacement.
 - Recovery tests must distinguish recoverable and unrecoverable children. The unrecoverable path must report missing context and redispatch from the last verified candidate without claiming revival.
 - Queue validation tests remain deterministic script tests. They cover required fields, stable unique IDs, dependency validity, cycles, forbidden runtime and child-topology fields, and rejection rather than automatic repair.
-- Rework counter tests remain deterministic script tests. They cover explicit slice/child command namespaces, initial zero behavior, atomic increment, persistence, the third/sixth/ninth escalation cadence, non-persistence of action fields, separation of Root and Leader-owned files, and malformed-state failure.
+- Rework counter tests remain deterministic script tests. They cover explicit slice/child command namespaces, initial zero behavior, atomic increment, persistence, slice `action=require_advisor` at its threshold after which Root marks the slice `BLOCKED`, child `upgrade_executor` at the third/sixth/ninth cadence, non-persistence of action fields, separation of Root and Leader-owned files, and malformed-state failure.
 - Bootstrap and authorization tests cover one immutable initialization receipt, one run-level authorization, exact queue/base identity, refusal to begin production during initialization, and retirement of per-slice release behavior.
 - Root scheduling tests use bounded fixtures to prove maximum-safe-frontier behavior: newly ready work starts immediately after its dependencies integrate, unrelated running Leaders do not block it, slices sharing a declared mutable resource serialize, and blockers freeze only affected chains.
 - Leader decomposition tests focus on observable dispatch and assembly behavior rather than internal plans. Independent child patches may be dispatched concurrently; verified patches are applied serially; actual conflicts cause only the affected child scopes to merge on REWORK.
 - OMP adapter tests cover installation admission only: profile selection and persistence, required model roles, role definitions and their projections, the isolation policy, and the supported OMP version. They do not verify any individual dispatch.
 - Candidate acceptance tests prove that lifecycle or settlement alone does not produce `PASS`; Root must verify exact bytes, paths, checks, scope, and no-active-writer evidence before apply/integration.
-- Advisor tests prove read-only behavior, candidate identity gating, optional invocation, evidence-only `PASS`, and blocking on candidate drift or unsafe verification.
+- Advisor tests prove Root-only explicit-`BLOCKED` invocation, required blocker identity/evidence/request, conditional candidate gating, read-only findings, no outcome or authorization authority, and blocking on candidate drift or unsafe verification when a candidate is supplied.
 - Autopilot tests prove that supervision can observe and intervene without dispatching Leaders/Executors, accepting slices, writing production state, or performing Git integration.
 - Cleanup tests verify outcomes rather than merely issuing cleanup commands. Temporary isolation is absent or empty after native cleanup, retained evidence remains available for parent disposition where required, and failures report leaked resources explicitly.
 - Tests must include untracked files when reviewing repository scope and documentation effects.
@@ -168,7 +167,7 @@ Only slice-level and child-level rework counts are persisted by core. All other 
 - Multiple competing production owners, hostile same-user agents, multi-tenant access control, or cross-host child ownership.
 - External Herdr Leader/Executor panes as the normal production topology.
 - Autopilot acting as a second scheduler, per-slice releaser, routine acceptance authority, production writer, or Git integrator.
-- Automatic Advisor creation or mandatory Advisor review for every slice.
+- Automatic Advisor creation outside Root's explicit `BLOCKED` flow, risk-based Advisor triggers, or mandatory Advisor review for ordinary acceptance, verification, or every slice.
 - A mandatory completion webhook or Root dependency on external notification delivery.
 - Model/provider/effort choices embedded in queue semantics; runner profiles own those mappings.
 - Reimplementing OMP task isolation, Agent Hub, structured settlement, transcript persistence, patch retention, cleanup, or park/revive behavior.

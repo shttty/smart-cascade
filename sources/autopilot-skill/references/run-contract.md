@@ -48,7 +48,7 @@ Production facts owned by Root/Leader:
 - child task-scope assignments and worktree confinement;
 - child settlement and assembly;
 - candidate freeze and acceptance-target verification;
-- Advisor evidence;
+- conditional Root-invoked Advisor blocker evidence for an explicitly `BLOCKED` task or slice;
 - PASS/REWORK/BLOCKED decisions;
 - commit/integration and dependency advancement;
 - cleanup disposition.
@@ -69,7 +69,7 @@ Root and Leader use native asynchronous OMP tasks with `isolated=true`. The prof
 
 ## Candidate and acceptance
 
-A lifecycle event is a doorbell only. Root freezes one exact candidate, verifies real bytes, acceptance targets, reported verification, and scope, obtains Advisor evidence when risk requires it, and decides:
+A lifecycle event is a doorbell only. Root freezes one exact candidate and verifies real bytes, acceptance targets, reported verification, and scope. An ordinary single `REWORK`, acceptance, review, independent verification, risk inspection, or uncertainty does not directly invoke Advisor. If the slice rework counter returns `action=require_advisor`, Root first marks that slice `BLOCKED`, preserves the relevant evidence, and invokes Advisor for blocker diagnosis or unblocking assistance; a candidate is required only when that blocker concerns candidate bytes.
 
 ```text
 PASS     commit/integrate and advance dependencies
@@ -77,7 +77,7 @@ REWORK   exact checklist under the same logical identity
 BLOCKED  preserve evidence and stop only the affected chain
 ```
 
-Autopilot may inspect these facts for supervision or final reporting but does not issue a second verdict.
+Advisor output is read-only evidence. Root alone decides the outcome, and Advisor findings cannot grant scope, permissions, or production authorization. Autopilot may inspect these facts for supervision or final reporting but does not issue a second verdict.
 
 ## Stop conditions
 

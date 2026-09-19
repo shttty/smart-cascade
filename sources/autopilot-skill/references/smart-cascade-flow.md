@@ -44,7 +44,7 @@ The default frontier includes every dependency-ready slice. Record a concrete se
 3. Process whichever Leader Hub message or typed settlement arrives first.
 4. Verify the exact retained patch artifact, changed paths, postconditions, acceptance targets, reported verification, and typed result.
 5. Freeze a candidate only after proving no active writer can mutate it.
-6. Obtain Advisor evidence when the acceptance risk requires it.
+6. An ordinary single `REWORK`, acceptance, review, independent verification, risk inspection, or uncertainty does not directly invoke Advisor. If the slice rework counter returns `action=require_advisor`, Root must mark that slice `BLOCKED`, preserve the relevant evidence, and invoke Advisor for blocker diagnosis or unblocking assistance.
 7. Decide `PASS`, `REWORK`, or `BLOCKED`.
 8. On `PASS`, apply the accepted patch, commit/integrate, verify the result, mark dependencies satisfied, and recompute the frontier.
 9. On `REWORK`, rematerialize from an explicit base, reapply/verify the last cumulative patch, and handle only remaining findings.
@@ -86,7 +86,7 @@ Executors implement only the packet. They do not own worktree lifecycle, commit,
 
 ## Candidate and Advisor
 
-A lifecycle event is a doorbell only. Root freezes the candidate. Advisor reviews one Root-frozen candidate and returns evidence. Advisor `PASS` is not acceptance; Root decides and performs the production Git action.
+A lifecycle event is a doorbell only. Root freezes and verifies candidates directly. Advisor is Root-only, read-only blocker assistance: Root may invoke it only for an explicit `BLOCKED` task or slice when diagnosis or unblocking help is needed, with task identity, blocker evidence, and a concrete request. A slice counter returning `action=require_advisor` is handled by first marking that slice `BLOCKED`; if the blocker concerns a candidate, provide that exact frozen candidate, while environment or specification blockers do not require candidate bytes. Advisor evidence never accepts work, decides the outcome, or grants authorization; Root remains responsible for every production decision.
 
 ## Escalation
 

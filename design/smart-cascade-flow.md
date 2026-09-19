@@ -127,8 +127,7 @@ Queue 不包含：
 - 决定 slice 通过或返工；
 - 执行 Git commit/integration；
 - 推进依赖；
-- 继续无关的可执行 slice；
-- 在必要时请求 Advisor；
+- 只在某个任务或 slice 已明确为 `BLOCKED` 且需要解阻分析时请求 Advisor；
 - 处理最终阻塞和清理。
 
 Root 不直接替代 Leader/Executor 完成产品实现。
@@ -148,7 +147,8 @@ Root 启动 Leader
   → Root 验证候选
   → Root 技术通过：commit/integration、推进依赖
   → Root 不通过：决定 slice REWORK
-  → Root 或 Leader 因能力不足：请求 Advisor
+  → Root/Leader 发现真实 blocker：保留 `BLOCKED`，只冻结受影响链
+  → 只有 Root 在明确 `BLOCKED` 且需要解阻协助时调用 Advisor
 ```
 
 ## 7. Leader 的动态 patch decomposition
@@ -284,56 +284,40 @@ Executor 只处理一个具体 patch assignment，并在 native OMP 为它创建
 
 ## 9. Advisor 的职责
 
-Advisor 是按需创建的能力升级和独立复核 subagent，不属于正常的 Root → Leader → Executor 拓扑，也不是 Root 技术 PASS 的固定盖章角色。
+Advisor 是 Root 仅在明确 blocker 上按需调用的只读诊断与解阻协助 subagent，不属于正常的 Root → Leader → Executor 拓扑，也不是 Root 技术 PASS 的盖章角色。
 
-### 触发条件
+### 唯一触发条件
 
-Advisor 可以在以下情况介入：
+只有以下条件全部成立时，Root 才能调用 Advisor：
 
-- 任务超出当前 Root 或 Leader 的能力范围；
-- Leader 无法形成可靠的 child decomposition；
-- Root 无法判断如何处理跨 child 或跨 slice 问题；
-- 普通 REWORK 多次后仍未达标；
-- 需要更强分析来定位复杂 bug、架构或恢复问题；
-- 需要独立复核高风险 candidate。
+- 一个明确的任务或 slice 已进入 `BLOCKED`，并记录了真实、具体的 blocker；
+- Root 确实需要外部分析来诊断 blocker 或寻找有界的解阻路径；
+- Root 提供任务/slice/child identity、相关证据和明确的 assistance request。
 
-### 不能绕过的边界
+如果 blocker 涉及 candidate bytes，必须提供一个已经冻结的 exact candidate 及其 lineage。环境、规格或其他不涉及 candidate bytes 的 blocker 不需要 candidate。缺少用户对 scope、permissions 或 production action 的授权时，必须升级给用户，不能用 Advisor 代替用户决定。
 
-Advisor 不能解决：
+普通 acceptance、approval、独立 verification、risk inspection、暂时不确定、普通 review，以及单次 `REWORK` 都不直接触发 Advisor。只有 Root 可以调用 Advisor；Leader、Executor 和 Autopilot 只能报告 blocker 或转交证据。
 
-- 用户未作出的产品决策；
-- 权限不足；
-- 未授权的 scope 扩大；
-- 缺失凭据或外部环境；
-- 未批准的架构范围；
-- Root 的生产 Git authority。
+### 只读边界与 authority
 
-Advisor 提供分析、方案、拆分建议、验证建议和复核证据；Root 仍负责运行内决定和执行，用户与 Autopilot 仍负责外部交付接受与继续返工的决定。
+Advisor 只读取与指定 blocker 相关的 specification、decision、queue boundary、环境或 candidate evidence，必要时执行有界的 zero-write 检查，并返回诊断、证据、选项和解阻前置条件。它不修改文件、不修复 candidate、不作 `PASS`/`REWORK`/`BLOCKED` 决策，不接受 work，也不授权 scope、permissions 或 production action。
 
-### REWORK 能力阈值
+Root 独自决定 blocker 是否解决、是否继续或返工，以及是否需要用户决定。Advisor 的 findings 永远只是 evidence；Advisor 不能把分析结论变成用户授权或生产批准。
 
-REWORK 次数按稳定的 logical slice 或 child 记录，不因更换临时 attempt、worktree、session 或模型而清零。
+### REWORK 计数
 
-每当累计 REWORK 次数达到 3 的倍数，只产生一次升级建议，不自动创建 Advisor，也不自动阻塞当前生产闭环。升级动作按层级区分：slice 层可请求 Advisor；child 层先改派升级后的 semantic Executor，必要时再请求 Advisor。
+REWORK 次数按稳定的 logical slice 或 child 记录，不因更换临时 attempt、worktree、session 或 model 而清零。计数本身不改变 Root authority。
+
+slice 层每累计 3 次 REWORK，计数命令返回 `action=require_advisor`。Root 必须先把该 slice 明确标记为 `BLOCKED`，保存真实 blocker 和相关 evidence，再调用 Advisor 进行 blocker diagnosis/unblocking assistance。该阈值不是 acceptance、授权或 Advisor 自行创建动作。
+
+child 层在第 3、6、9……次 REWORK 仍按既有规则改派 escalated semantic Executor；这只是 Executor capability upgrade，不是 Advisor。child 计数不会改变 slice 的 `BLOCKED` threshold flow。
 
 ```text
-rework = 1 → 普通 REWORK
-rework = 2 → 普通 REWORK
-rework = 3 → 触发一次升级
-rework = 4 → 普通 REWORK
-rework = 5 → 普通 REWORK
-rework = 6 → 再次触发一次升级
+slice rework = 1, 2 → action=continue
+slice rework = 3, 6, 9, ... → action=require_advisor
+child rework = 1, 2 → action=continue
+child rework = 3, 6, 9, ... → action=upgrade_executor
 ```
-
-脚本在递增后判断：
-
-```text
-rework += 1
-rework % 3 == 0 → 返回升级动作
-否则            → 返回继续动作
-```
-
-升级建议只在第 3、6、9……次产生，不会因为 `rework > 2` 而在后续每次 REWORK 都重复自动创建 Advisor。升级后的执行仍保留累计次数。
 
 ## 10. Child 的升级路径
 
@@ -351,7 +335,7 @@ escalated semantic Executor
 
 具体 model/provider/effort 由 runner 配置映射，不写死在 Smart Cascade 流程中。若 runner 将 `luna:max` 配置为 stronger profile，它仍然属于 escalated semantic Executor；`luna:max` 不是 Advisor。Mechanical Executor 只处理已完全确定的机械变换，不因为机械任务失败就盲目切换到 stronger semantic profile。如果机械任务出现语义歧义，返回 blocker，由 Leader 改派 semantic Executor。
 
-Escalated semantic Executor 仍然无法完成时，Leader 通过交接通信报告真实原因，再决定请求 Advisor、合并相关 child 写集、阻塞该链或向用户升级。
+Escalated semantic Executor 仍然无法完成时，Leader 通过交接通信报告真实原因。只有 Root 在该任务或 slice 明确 `BLOCKED` 且需要 blocker diagnosis/unblocking assistance 时，才可按 Advisor 入口提供证据并调用 Advisor；否则合并相关 child 写集、继续返工或向用户升级。
 
 ## 11. 极简持久状态
 
@@ -448,7 +432,7 @@ slice-a rework=2
 slice-a/child-a rework=1
 ```
 
-更新命令自动递增次数，并在递增后按 `rework % 3 == 0` 返回下一步动作：
+更新命令自动递增次数；slice 计数在每 3 次返回 Advisor 路由动作，child 计数在 3、6、9……时返回 Executor 升级动作：
 
 ```text
 state.py slice rework slice-a
@@ -458,7 +442,7 @@ state.py child rework slice-a child-a
 → rework=3 action=upgrade_executor
 ```
 
-非 3 的倍数返回：
+slice 返回 `action=require_advisor` 后，Root 必须先将 slice 标记为 `BLOCKED` 并保存 blocker evidence，再调用 Advisor。其他情况返回：
 
 ```text
 action=continue
@@ -470,9 +454,9 @@ action=continue
 rework = 3
 ```
 
-动作只存在于脚本本次输出中，不写入 `advisor`、`upgrade` 或其他状态字段。slice 层的升级动作是建议请求 Advisor；child 层的升级动作是先改派 escalated semantic Executor。升级后的 semantic Executor 仍失败时，再由 Leader 通过交接通信请求 Advisor 或升级用户。脚本不自动创建 Advisor，也不把 Advisor 设为验收门槛。
+动作只存在于脚本本次输出中，不写入 `advisor`、`upgrade` 或其他状态字段。slice 层每 3 次返回 `action=require_advisor`，但该动作只把 Root 引入显式 `BLOCKED` flow；它不自动创建 Advisor，也不把 Advisor 设为验收门槛。child 层的升级动作是先改派 escalated semantic Executor。升级后的 semantic Executor 仍失败时，Leader 通过交接通信报告真实 blocker；只有 Root 在任务或 slice 明确 `BLOCKED` 且需要 blocker assistance 时，才按 Advisor 入口提供证据并调用 Advisor。
 
-失败原因、阻塞原因、为什么需要 Advisor、为什么需要合并写集，都通过 Agent 交接消息和可恢复的 OMP session 传递，不写入状态文件。
+失败原因、阻塞原因、为什么需要 blocker assistance、为什么需要合并写集，都通过 Agent 交接消息和可恢复的 OMP session 传递，不写入状态文件。
 
 ## 12. 运行时交接
 
@@ -482,7 +466,7 @@ rework = 3
 - patch 路径和真实变更证据；
 - 失败原因；
 - blocker 类型；
-- Advisor 请求；
+- Root 对明确 `BLOCKED` 任务或 slice 的 Advisor 请求及相关证据；
 - 建议合并哪些 child 的写集；
 - 下一次 REWORK 的剩余目标；
 - 用户需要决定的事项。

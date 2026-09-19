@@ -45,8 +45,8 @@ flowchart TD
 
     VERIFY -->|"PASS"| COMMIT["Git commit / integration<br/>推进依赖"]
     VERIFY -->|"REWORK"| LEADER
-    VERIFY -->|"能力不足"| ADVISOR["请求 Advisor"]
-    ADVISOR --> LEADER
+    VERIFY -->|"BLOCKED + Root requests blocker assistance"| ADVISOR["Root invokes read-only Advisor"]
+    ADVISOR -->|"evidence only"| VERIFY
 
     COMMIT --> NEXT{"还有 ready slice?"}
     NEXT -->|"是"| ROOT
